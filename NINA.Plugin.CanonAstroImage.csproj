@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <OutputType>Library</OutputType>
+    <RootNamespace>NINA.Plugin.CanonAstroImage</RootNamespace>
+    <AssemblyName>NINA.Plugin.CanonAstroImage</AssemblyName>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <UseWPF>true</UseWPF>
+    <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="NINA.Plugin" Version="3.0.0.2017-beta" />
+  </ItemGroup>
+
+  <!-- Exclude template folder from build -->
+  <ItemGroup>
+    <Compile Remove="nina.plugin.template\**" />
+    <EmbeddedResource Remove="nina.plugin.template\**" />
+    <Page Remove="nina.plugin.template\**" />
+    <None Remove="nina.plugin.template\**" />
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="&#xD;&#xA;if not exist &quot;%25localappdata%25\NINA\Plugins\3.0.0\Canon&quot; (&#xD;&#xA;  echo &quot;Creating NINA Plugins Canon folder&quot;&#xD;&#xA;  mkdir &quot;%25localappdata%25\NINA\Plugins\3.0.0\Canon&quot;&#xD;&#xA;)&#xD;&#xA;&#xD;&#xA;echo &quot;Copying $(TargetFileName) to Canon plugin folder&quot;&#xD;&#xA;xcopy &quot;$(TargetPath)&quot; &quot;%25localappdata%25\NINA\Plugins\3.0.0\Canon\&quot; /h/i/c/k/e/r/y&#xD;&#xA;  " />
+  </Target>
+</Project>
