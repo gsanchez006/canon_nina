@@ -98,7 +98,7 @@ Both files contain identical image data and metadata.
 
 ## License
 
-Mozilla Public License 2.0 - See LICENSE.txt for details
+GNU GENERAL PUBLIC LICENSE 3.0 - See LICENSE for details
 
 ## Support
 
@@ -109,7 +109,7 @@ For issues, feature requests, or questions:
 
 ## Version History
 
-### 3.0.0.0
+### 1.0.0.0
 - Active image writer implementation
 - Multi-format support (FITS, XISF, TIFF)
 - Auto-delete CR3/CR2 toggle
