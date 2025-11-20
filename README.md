@@ -1,4 +1,4 @@
-﻿# Canon Astronomy Format Plugin for NINA
+﻿# Canon Astro Image Format Plugin for NINA
 
 A NINA plugin that enables Canon camera users to save images directly in astronomy-friendly formats (FITS, XISF, TIFF) instead of being restricted to Canon RAW files (.cr2/.cr3).
 
