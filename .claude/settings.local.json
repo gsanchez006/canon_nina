@@ -1,7 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(dotnet-ildasm \"c:/Users/Gus/.nuget/packages/nina.wpf.base/3.0.0.2017-beta/lib/net8.0-windows7.0/NINA.WPF.Base.dll\" --filter \"IImageSaveMediator\")"
-    ]
-  }
-}
