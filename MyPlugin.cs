@@ -281,37 +281,85 @@ namespace NINA.Plugin.CanonAstroImage {
 
                 // Use reflection to update private-set properties
                 var type = entry.GetType();
+                bool localPathUpdated = false;
+                bool filenameUpdated = false;
 
                 var localPathProp = type.GetProperty("LocalPath", BindingFlags.Public | BindingFlags.Instance);
-                if (localPathProp != null && localPathProp.CanWrite) {
-                    localPathProp.SetValue(entry, newFitsPath);
-                    Logger.Info($"CanonAstronomyFormat: Updated LocalPath property to {newFitsPath}");
+                if (localPathProp != null) {
+                    try {
+                        // Try public setter first
+                        if (localPathProp.CanWrite) {
+                            localPathProp.SetValue(entry, newFitsPath);
+                        } else {
+                            // Try to find and set backing field directly
+                            var backingField = type.GetField("<LocalPath>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance);
+                            if (backingField != null) {
+                                backingField.SetValue(entry, newFitsPath);
+                            }
+                        }
+                        // Verify it was set
+                        var currentValue = localPathProp.GetValue(entry);
+                        if (string.Equals(currentValue?.ToString(), newFitsPath, StringComparison.Ordinal)) {
+                            localPathUpdated = true;
+                            Logger.Info($"CanonAstronomyFormat: Updated LocalPath property to {newFitsPath}");
+                        } else {
+                            Logger.Error($"CanonAstronomyFormat: LocalPath update failed - verified value is still {currentValue}");
+                        }
+                    } catch (Exception ex) {
+                        Logger.Error($"CanonAstronomyFormat: Exception updating LocalPath: {ex.Message}");
+                    }
                 } else {
-                    Logger.Warning("CanonAstronomyFormat: LocalPath property is read-only or not found");
+                    Logger.Warning("CanonAstronomyFormat: LocalPath property not found");
                 }
 
                 var filenameProp = type.GetProperty("Filename", BindingFlags.Public | BindingFlags.Instance);
-                if (filenameProp != null && filenameProp.CanWrite) {
-                    filenameProp.SetValue(entry, Path.GetFileName(newFitsPath));
-                    Logger.Info($"CanonAstronomyFormat: Updated Filename property");
+                if (filenameProp != null) {
+                    try {
+                        var newFilename = Path.GetFileName(newFitsPath);
+                        if (filenameProp.CanWrite) {
+                            filenameProp.SetValue(entry, newFilename);
+                        } else {
+                            var backingField = type.GetField("<Filename>k__BackingField", BindingFlags.NonPublic | BindingFlags.Instance);
+                            if (backingField != null) {
+                                backingField.SetValue(entry, newFilename);
+                            }
+                        }
+                        // Verify it was set
+                        var currentValue = filenameProp.GetValue(entry);
+                        if (string.Equals(currentValue?.ToString(), newFilename, StringComparison.Ordinal)) {
+                            filenameUpdated = true;
+                            Logger.Info($"CanonAstronomyFormat: Updated Filename property to {newFilename}");
+                        } else {
+                            Logger.Error($"CanonAstronomyFormat: Filename update failed - verified value is still {currentValue}");
+                        }
+                    } catch (Exception ex) {
+                        Logger.Error($"CanonAstronomyFormat: Exception updating Filename: {ex.Message}");
+                    }
                 } else {
-                    Logger.Warning("CanonAstronomyFormat: Filename property is read-only or not found");
+                    Logger.Warning("CanonAstronomyFormat: Filename property not found");
                 }
 
-                // Try to raise PropertyChanged for UI update
-                var raiseMethod = type.GetMethod("RaisePropertyChanged",
-                    BindingFlags.NonPublic | BindingFlags.Instance)
-                    ?? type.GetMethod("OnPropertyChanged",
-                    BindingFlags.NonPublic | BindingFlags.Instance);
-                if (raiseMethod != null) {
-                    raiseMethod.Invoke(entry, new object[] { "LocalPath" });
-                    raiseMethod.Invoke(entry, new object[] { "Filename" });
-                    Logger.Info("CanonAstronomyFormat: Invoked PropertyChanged notifications");
+                // Only try to raise PropertyChanged if we successfully updated something
+                if (localPathUpdated || filenameUpdated) {
+                    try {
+                        var raiseMethod = type.GetMethod("RaisePropertyChanged",
+                            BindingFlags.NonPublic | BindingFlags.Instance)
+                            ?? type.GetMethod("OnPropertyChanged",
+                            BindingFlags.NonPublic | BindingFlags.Instance);
+                        if (raiseMethod != null) {
+                            if (localPathUpdated) raiseMethod.Invoke(entry, new object[] { "LocalPath" });
+                            if (filenameUpdated) raiseMethod.Invoke(entry, new object[] { "Filename" });
+                            Logger.Info("CanonAstronomyFormat: Invoked PropertyChanged notifications");
+                        } else {
+                            Logger.Warning("CanonAstronomyFormat: Could not find RaisePropertyChanged or OnPropertyChanged method");
+                        }
+                    } catch (Exception ex) {
+                        Logger.Error($"CanonAstronomyFormat: Exception raising PropertyChanged: {ex.Message}");
+                    }
+                    Logger.Info($"CanonAstronomyFormat: Successfully updated history entry");
                 } else {
-                    Logger.Warning("CanonAstronomyFormat: Could not find RaisePropertyChanged or OnPropertyChanged method");
+                    Logger.Error("CanonAstronomyFormat: Could not update any properties - reflection approach failed, history entry will still show CR3");
                 }
-
-                Logger.Info($"CanonAstronomyFormat: Successfully updated history entry");
             } catch (Exception ex) {
                 Logger.Error($"CanonAstronomyFormat: Exception in TryUpdateHistoryEntry: {ex.Message}\n{ex.StackTrace}");
             }
