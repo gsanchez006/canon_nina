@@ -235,19 +235,21 @@ namespace NINA.Plugin.CanonAstroImage {
                     return;
                 }
 
-                Logger.Debug($"CanonAstronomyFormat: History collection count: {history.Count}, searching for CR3: {originalCrPath}");
+                Logger.Info($"CanonAstronomyFormat: TryUpdateHistoryEntry ENTER - History count: {history.Count}, CR3 path: {originalCrPath}, retry: {retryCount}");
 
                 // Search for entry with the original CR3 path
                 object foundEntry = null;
+                int itemCount = 0;
                 foreach (var item in history) {
                     if (item == null) continue;
 
+                    itemCount++;
                     var itemType = item.GetType();
                     var localPathProp = itemType.GetProperty("LocalPath", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
                     var localPath = localPathProp?.GetValue(item) as string;
 
                     if (retryCount == 0) {
-                        Logger.Debug($"CanonAstronomyFormat: History item found - LocalPath: {localPath}, Type: {itemType.Name}");
+                        Logger.Info($"CanonAstronomyFormat: History item #{itemCount} - LocalPath: {localPath}, Type: {itemType.Name}");
                     }
 
                     if (string.Equals(localPath, originalCrPath, StringComparison.OrdinalIgnoreCase)) {
@@ -258,7 +260,7 @@ namespace NINA.Plugin.CanonAstroImage {
 
                 if (foundEntry != null) {
                     // Found the entry - update it via reflection
-                    Logger.Debug($"CanonAstronomyFormat: Found history entry, updating from CR3 to FITS (retry #{retryCount})");
+                    Logger.Info($"CanonAstronomyFormat: FOUND history entry! Updating from CR3 to FITS (retry #{retryCount})");
 
                     var entryType = foundEntry.GetType();
                     var localPathProp = entryType.GetProperty("LocalPath", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
@@ -277,7 +279,7 @@ namespace NINA.Plugin.CanonAstroImage {
 
                 // Entry not found - retry if we haven't exceeded limit
                 if (retryCount < maxRetries) {
-                    Logger.Debug($"CanonAstronomyFormat: History entry not found, retrying in {delayMs}ms (attempt {retryCount + 1}/{maxRetries})");
+                    Logger.Info($"CanonAstronomyFormat: Entry not found in {itemCount} items, retrying in {delayMs}ms (attempt {retryCount + 1}/{maxRetries})");
                     var delayedRetry = async () => {
                         await Task.Delay(delayMs);
                         Application.Current?.Dispatcher?.BeginInvoke(
@@ -286,7 +288,7 @@ namespace NINA.Plugin.CanonAstroImage {
                     };
                     _ = delayedRetry();
                 } else {
-                    Logger.Warning($"CanonAstronomyFormat: Could not find history entry after {maxRetries} retries");
+                    Logger.Warning($"CanonAstronomyFormat: Could not find history entry after {maxRetries} retries ({itemCount} items searched)");
                 }
 
             } catch (Exception ex) {
