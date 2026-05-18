@@ -237,8 +237,9 @@ namespace NINA.Plugin.CanonAstroImage {
 
                 Logger.Info($"CanonAstronomyFormat: TryUpdateHistoryEntry ENTER - History count: {history.Count}, CR3 path: {originalCrPath}, retry: {retryCount}");
 
-                // Search for entry with the original CR3 path
-                object foundEntry = null;
+                // Search for entry with the CR3 path OR an entry with empty LocalPath (being populated)
+                object foundCr3Entry = null;
+                object foundEmptyEntry = null;
                 int itemCount = 0;
                 foreach (var item in history) {
                     if (item == null) continue;
@@ -249,46 +250,68 @@ namespace NINA.Plugin.CanonAstroImage {
                     var localPath = localPathProp?.GetValue(item) as string;
 
                     if (retryCount == 0) {
-                        Logger.Info($"CanonAstronomyFormat: History item #{itemCount} - LocalPath: {localPath}, Type: {itemType.Name}");
+                        Logger.Info($"CanonAstronomyFormat: History item #{itemCount} - LocalPath: '{localPath}', Type: {itemType.Name}");
                     }
 
+                    // Check if this is our CR3 entry
                     if (string.Equals(localPath, originalCrPath, StringComparison.OrdinalIgnoreCase)) {
-                        foundEntry = item;
+                        foundCr3Entry = item;
                         break;
+                    }
+
+                    // Or if it's an empty entry (still being populated by NINA)
+                    if (string.IsNullOrEmpty(localPath) && foundEmptyEntry == null) {
+                        foundEmptyEntry = item;
                     }
                 }
 
-                if (foundEntry != null) {
-                    // Found the entry - update it via reflection
-                    Logger.Info($"CanonAstronomyFormat: FOUND history entry! Updating from CR3 to FITS (retry #{retryCount})");
+                if (foundCr3Entry != null) {
+                    // Found the CR3 entry - update it to FITS
+                    Logger.Info($"CanonAstronomyFormat: FOUND CR3 history entry! Updating to FITS (retry #{retryCount})");
 
-                    var entryType = foundEntry.GetType();
+                    var entryType = foundCr3Entry.GetType();
                     var localPathProp = entryType.GetProperty("LocalPath", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
                     var filenameProp = entryType.GetProperty("Filename", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
 
                     if (localPathProp?.CanWrite == true) {
-                        localPathProp.SetValue(foundEntry, newFitsPath);
+                        localPathProp.SetValue(foundCr3Entry, newFitsPath);
                     }
                     if (filenameProp?.CanWrite == true) {
-                        filenameProp.SetValue(foundEntry, Path.GetFileName(newFitsPath));
+                        filenameProp.SetValue(foundCr3Entry, Path.GetFileName(newFitsPath));
                     }
 
                     Logger.Info($"CanonAstronomyFormat: Updated history entry to {newFitsPath}");
                     return;
                 }
 
-                // Entry not found - retry if we haven't exceeded limit
-                if (retryCount < maxRetries) {
-                    Logger.Info($"CanonAstronomyFormat: Entry not found in {itemCount} items, retrying in {delayMs}ms (attempt {retryCount + 1}/{maxRetries})");
-                    var delayedRetry = async () => {
-                        await Task.Delay(delayMs);
-                        Application.Current?.Dispatcher?.BeginInvoke(
-                            DispatcherPriority.ApplicationIdle,
-                            (Action)(() => TryUpdateHistoryEntry(originalCrPath, newFitsPath, retryCount + 1)));
-                    };
-                    _ = delayedRetry();
+                if (foundEmptyEntry != null) {
+                    // Found an empty entry - wait for it to be populated, then check if it's ours
+                    if (retryCount < maxRetries) {
+                        Logger.Info($"CanonAstronomyFormat: Found empty entry in history, retrying to check if it becomes our CR3 (attempt {retryCount + 1}/{maxRetries})");
+                        var delayedRetry = async () => {
+                            await Task.Delay(delayMs);
+                            Application.Current?.Dispatcher?.BeginInvoke(
+                                DispatcherPriority.ApplicationIdle,
+                                (Action)(() => TryUpdateHistoryEntry(originalCrPath, newFitsPath, retryCount + 1)));
+                        };
+                        _ = delayedRetry();
+                    } else {
+                        Logger.Warning($"CanonAstronomyFormat: Found empty entry but it never got populated with our CR3 path after {maxRetries} retries");
+                    }
                 } else {
-                    Logger.Warning($"CanonAstronomyFormat: Could not find history entry after {maxRetries} retries ({itemCount} items searched)");
+                    // No empty entry and no CR3 entry found
+                    if (retryCount < maxRetries) {
+                        Logger.Info($"CanonAstronomyFormat: No matching entry found yet, retrying (attempt {retryCount + 1}/{maxRetries})");
+                        var delayedRetry = async () => {
+                            await Task.Delay(delayMs);
+                            Application.Current?.Dispatcher?.BeginInvoke(
+                                DispatcherPriority.ApplicationIdle,
+                                (Action)(() => TryUpdateHistoryEntry(originalCrPath, newFitsPath, retryCount + 1)));
+                        };
+                        _ = delayedRetry();
+                    } else {
+                        Logger.Warning($"CanonAstronomyFormat: Could not find history entry after {maxRetries} retries ({itemCount} items searched)");
+                    }
                 }
 
             } catch (Exception ex) {
