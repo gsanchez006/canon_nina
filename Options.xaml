@@ -9,64 +9,107 @@
     <!-- The key MUST match the AssemblyTitle: Canon Astro Image_Options -->
     <DataTemplate x:Key="Canon Astro Image_Options">
         <StackPanel Orientation="Vertical" Margin="10">
-            <TextBlock 
-                Text="Canon Astro Image Format Plugin" 
-                FontSize="14" 
-                FontWeight="Bold" 
+            <TextBlock
+                Text="Canon Astro Image Format Plugin"
+                FontSize="14"
+                FontWeight="Bold"
                 Margin="0,0,0,10" />
 
-            <!-- Auto-Delete CR3/CR2 Files Toggle -->
+            <!-- Plugin Enable/Disable Toggle -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
-                <CheckBox 
+                <CheckBox
+                    x:Name="PluginEnabledToggle"
+                    IsChecked="{Binding PluginEnabled, Mode=TwoWay}"
+                    VerticalAlignment="Center"
+                    Margin="0,0,10,0" />
+                <TextBlock
+                    Text="Enable Plugin"
+                    VerticalAlignment="Center"
+                    TextWrapping="Wrap"
+                    FontWeight="Bold" />
+            </StackPanel>
+
+            <!-- Auto-Delete CR3/CR2 Files Toggle (grayed out when plugin is disabled) -->
+            <StackPanel
+                Orientation="Horizontal"
+                Margin="0,0,0,15"
+                IsEnabled="{Binding PluginEnabled}">
+                <CheckBox
                     x:Name="AutoDeleteToggle"
                     IsChecked="{Binding AutoDeleteCanonRaw, Mode=TwoWay}"
                     VerticalAlignment="Center"
                     Margin="0,0,10,0" />
-                <TextBlock 
-                    Text="Auto-Delete Canon RAW Files (CR3/CR2)" 
+                <TextBlock
+                    Text="Auto-Delete Canon RAW Files (CR3/CR2)"
                     VerticalAlignment="Center"
                     TextWrapping="Wrap" />
             </StackPanel>
 
             <!-- Description -->
-            <TextBlock 
-                Text="When enabled, Canon RAW files (CR3 for EOS R series, CR2 for older models) will be automatically deleted after the image is successfully saved in your selected astronomy format (FITS, XISF, or TIFF)." 
+            <TextBlock
+                Text="Enable the plugin to automatically convert Canon RAW images to astronomy formats (FITS, XISF, or TIFF). When enabled, the plugin will create astronomy format files alongside your Canon RAW files. Optionally, enable auto-delete to remove the RAW files after successful conversion."
                 Foreground="#666666"
                 FontSize="11"
                 TextWrapping="Wrap"
                 Margin="0,0,0,10" />
 
-            <!-- Warning -->
-            <Border 
-                Background="#FFFACD" 
-                BorderBrush="#FFD700" 
-                BorderThickness="1" 
-                Padding="10" 
+            <!-- Warning about permanent deletion -->
+            <Border
+                Background="#FFFACD"
+                BorderBrush="#FFD700"
+                BorderThickness="1"
+                Padding="10"
                 Margin="0,0,0,10"
-                CornerRadius="3">
-                <TextBlock 
-                    Text="⚠ Warning: This action is permanent. Ensure you have backups if you need to preserve the original CR3/CR2 files." 
+                CornerRadius="3"
+                IsEnabled="{Binding PluginEnabled}">
+                <TextBlock
+                    Text="⚠ Warning: This action is permanent. Ensure you have backups if you need to preserve the original CR3/CR2 files."
                     Foreground="#000000"
                     FontSize="11"
                     TextWrapping="Wrap" />
             </Border>
 
+            <!-- Warning about image history compatibility -->
+            <Border
+                Background="#FFE6E6"
+                BorderBrush="#FF6B6B"
+                BorderThickness="1"
+                Padding="10"
+                Margin="0,0,0,10"
+                CornerRadius="3"
+                IsEnabled="{Binding PluginEnabled}">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock
+                        Text="⚠ Image History Limitation:"
+                        FontWeight="Bold"
+                        Foreground="#FF6B6B"
+                        FontSize="11"
+                        Margin="0,0,0,5" />
+                    <TextBlock
+                        Text="When auto-delete is enabled, NINA's image history will show an error because it references the deleted CR3 file. To preserve image history compatibility, keep auto-delete disabled. This is a technical limitation of NINA's image reference system."
+                        Foreground="#000000"
+                        FontSize="10"
+                        TextWrapping="Wrap"
+                        LineHeight="14" />
+                </StackPanel>
+            </Border>
+
             <!-- Info -->
-            <Border 
-                Background="#E6F3FF" 
-                BorderBrush="#0066CC" 
-                BorderThickness="1" 
-                Padding="10" 
+            <Border
+                Background="#E6F3FF"
+                BorderBrush="#0066CC"
+                BorderThickness="1"
+                Padding="10"
                 CornerRadius="3">
                 <StackPanel Orientation="Vertical">
-                    <TextBlock 
-                        Text="ℹ How It Works:" 
+                    <TextBlock
+                        Text="ℹ How It Works:"
                         FontWeight="Bold"
                         Foreground="#0066CC"
                         FontSize="11"
                         Margin="0,0,0,5" />
-                    <TextBlock 
-                        Text="1. Select the image format you want from Options -> Imaging -> File Settings&#10;2. You take an exposure with your Canon camera&#10;3. Plugin creates FITS/XISF/TIFF in your selected format&#10;4. Canon RAW file (CR3/CR2) is created automatically&#10;5. If auto-delete is enabled, CR3/CR2 is removed&#10;6. Final result: Only astronomy format files remain" 
+                    <TextBlock
+                        Text="1. Enable this plugin&#10;2. Select the image format you want from Options -> Imaging -> File Settings&#10;3. You take an exposure with your Canon camera&#10;4. Plugin creates FITS/XISF/TIFF in your selected format&#10;5. Canon RAW file (CR3/CR2) is created automatically&#10;6. If auto-delete is enabled, CR3/CR2 is removed (note: image history will be affected)&#10;7. Final result: Only astronomy format files (or both formats if auto-delete is disabled)"
                         Foreground="#000000"
                         FontSize="10"
                         TextWrapping="Wrap"

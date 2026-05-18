@@ -81,8 +81,15 @@ namespace NINA.Plugin.CanonAstroImage {
         /// </summary>
         private async Task ImageSaveMediator_BeforeImageSaved(object sender, BeforeImageSavedEventArgs e) {
             try {
+                // Check if plugin is enabled
+                if (!this.PluginEnabled) {
+                    Logger.Debug("CanonAstronomyFormat: Plugin is disabled, skipping image processing");
+                    await Task.CompletedTask;
+                    return;
+                }
+
                 var imageData = e.Image;
-                
+
                 if (imageData?.MetaData == null) {
                     return;
                 }
@@ -90,7 +97,7 @@ namespace NINA.Plugin.CanonAstroImage {
                 // Get user's selected file format from NINA Image Settings
                 var userFileType = profileService.ActiveProfile.ImageFileSettings.FileType;
                 var cameraName = imageData.MetaData.Camera?.Name ?? "Unknown";
-                
+
                 Logger.Info($"CanonAstronomyFormat: Processing image - Camera: {cameraName}, Output format: {userFileType}");
                 Logger.Debug($"Image dimensions: {imageData.Properties.Width}x{imageData.Properties.Height}");
 
@@ -141,6 +148,12 @@ namespace NINA.Plugin.CanonAstroImage {
         private void ImageSaveMediator_ImageSaved(object sender, ImageSavedEventArgs e) {
             try {
                 if (e?.PathToImage == null) return;
+
+                // Check if plugin is enabled
+                if (!this.PluginEnabled) {
+                    Logger.Debug("CanonAstronomyFormat: Plugin is disabled, skipping auto-delete");
+                    return;
+                }
 
                 // Check if auto-delete is enabled
                 if (!this.AutoDeleteCanonRaw) {
@@ -199,7 +212,31 @@ namespace NINA.Plugin.CanonAstroImage {
             RaisePropertyChanged(nameof(PluginVersion));
         }
 
-        public string PluginVersion => "1.0.0.0";
+        public string PluginVersion => "1.1.0.0";
+
+        private bool pluginEnabled;
+        public bool PluginEnabled {
+            get {
+                // Load from profile settings if not already loaded
+                if (!pluginEnabledLoaded) {
+                    var pluginSettings = profileService.ActiveProfile.PluginSettings;
+                    pluginEnabled = pluginSettings.TryGetValue(Guid.Parse(this.Identifier), "PluginEnabled", out bool value) ? value : true;
+                    pluginEnabledLoaded = true;
+                }
+                return pluginEnabled;
+            }
+            set {
+                if (pluginEnabled != value) {
+                    pluginEnabled = value;
+                    // Save to profile settings
+                    var pluginSettings = profileService.ActiveProfile.PluginSettings;
+                    pluginSettings.SetValue(Guid.Parse(this.Identifier), "PluginEnabled", value);
+                    Logger.Info($"CanonAstronomyFormat: Plugin enabled set to {value}");
+                    RaisePropertyChanged();
+                }
+            }
+        }
+        private bool pluginEnabledLoaded = false;
 
         private bool autoDeleteCanonRaw;
         public bool AutoDeleteCanonRaw {
