@@ -177,8 +177,13 @@ namespace NINA.Plugin.CanonAstroImage {
 
                 // Attempt early redirect (may not work if NINA's handler runs first)
                 if (!string.IsNullOrEmpty(fitsPathToUse)) {
-                    Logger.Info($"CanonAstronomyFormat: Attempting early redirect to FITS: {fitsPathToUse}");
+                    var beforeRedirect = e.PathToImage.LocalPath;
+                    Logger.Info($"CanonAstronomyFormat: Attempting early redirect");
+                    Logger.Info($"  BEFORE: {beforeRedirect}");
                     e.PathToImage = new Uri(fitsPathToUse);
+                    var afterRedirect = e.PathToImage.LocalPath;
+                    Logger.Info($"  AFTER:  {afterRedirect}");
+                    Logger.Info($"  Success: {string.Equals(afterRedirect, fitsPathToUse, StringComparison.OrdinalIgnoreCase)}");
                 }
 
                 // Try synchronous history update (on current thread, same handler invocation)
