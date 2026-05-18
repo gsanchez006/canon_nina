@@ -253,23 +253,32 @@ namespace NINA.Plugin.CanonAstroImage {
                     }
                 }
 
-                // Try to get and update the LocalPath and Filename properties
-                var localPathProp = entryType.GetProperty("LocalPath", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
-                var filenameProp = entryType.GetProperty("Filename", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
+                // Try to get and update the LocalPath and Filename properties using SAME binding flags as discovery
+                var bindFlags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase;
+                var localPathProp = entryType.GetProperty("LocalPath", bindFlags);
+                var filenameProp = entryType.GetProperty("Filename", bindFlags);
 
                 string currentPath = localPathProp?.GetValue(lastEntry) as string;
                 Logger.Info($"CanonAstronomyFormat: Last entry LocalPath: '{currentPath}', CanWrite: {localPathProp?.CanWrite}, looking for CR3: '{originalCrPath}'");
 
                 // Update if writable
                 if (localPathProp?.CanWrite == true) {
-                    localPathProp.SetValue(lastEntry, newFitsPath);
-                    Logger.Info($"CanonAstronomyFormat: Updated LocalPath to {newFitsPath}");
+                    try {
+                        localPathProp.SetValue(lastEntry, newFitsPath);
+                        Logger.Info($"CanonAstronomyFormat: Successfully updated LocalPath to {newFitsPath}");
+                    } catch (Exception ex) {
+                        Logger.Error($"CanonAstronomyFormat: Error updating LocalPath: {ex.Message}");
+                    }
                 } else {
-                    Logger.Info($"CanonAstronomyFormat: LocalPath is read-only, cannot update");
+                    Logger.Info($"CanonAstronomyFormat: LocalPath property not writable (CanWrite: {localPathProp?.CanWrite})");
                 }
                 if (filenameProp?.CanWrite == true) {
-                    filenameProp.SetValue(lastEntry, Path.GetFileName(newFitsPath));
-                    Logger.Info($"CanonAstronomyFormat: Updated Filename to {Path.GetFileName(newFitsPath)}");
+                    try {
+                        filenameProp.SetValue(lastEntry, Path.GetFileName(newFitsPath));
+                        Logger.Info($"CanonAstronomyFormat: Successfully updated Filename to {Path.GetFileName(newFitsPath)}");
+                    } catch (Exception ex) {
+                        Logger.Error($"CanonAstronomyFormat: Error updating Filename: {ex.Message}");
+                    }
                 }
             } catch (Exception ex) {
                 Logger.Error($"CanonAstronomyFormat.TrySyncUpdateHistoryEntry failed: {ex.Message}\n{ex.StackTrace}");
