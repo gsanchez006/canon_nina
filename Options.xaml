@@ -69,10 +69,10 @@
                     TextWrapping="Wrap" />
             </Border>
 
-            <!-- Warning about image history compatibility -->
+            <!-- Info about image history integration -->
             <Border
-                Background="#FFE6E6"
-                BorderBrush="#FF6B6B"
+                Background="#E6F8E6"
+                BorderBrush="#00AA00"
                 BorderThickness="1"
                 Padding="10"
                 Margin="0,0,0,10"
@@ -80,13 +80,13 @@
                 IsEnabled="{Binding PluginEnabled}">
                 <StackPanel Orientation="Vertical">
                     <TextBlock
-                        Text="⚠ Image History Limitation:"
+                        Text="✓ Image History Integration:"
                         FontWeight="Bold"
-                        Foreground="#FF6B6B"
+                        Foreground="#00AA00"
                         FontSize="11"
                         Margin="0,0,0,5" />
                     <TextBlock
-                        Text="When auto-delete is enabled, NINA's image history will show an error because it references the deleted CR3 file. To preserve image history compatibility, keep auto-delete disabled. This is a technical limitation of NINA's image reference system."
+                        Text="When auto-delete is enabled, NINA's image history correctly shows the FITS/XISF/TIFF file path instead of the deleted CR3. Image history will work perfectly regardless of auto-delete setting."
                         Foreground="#000000"
                         FontSize="10"
                         TextWrapping="Wrap"
@@ -109,7 +109,7 @@
                         FontSize="11"
                         Margin="0,0,0,5" />
                     <TextBlock
-                        Text="1. Enable this plugin&#10;2. Select the image format you want from Options -> Imaging -> File Settings&#10;3. You take an exposure with your Canon camera&#10;4. Plugin creates FITS/XISF/TIFF in your selected format&#10;5. Canon RAW file (CR3/CR2) is created automatically&#10;6. If auto-delete is enabled, CR3/CR2 is removed (note: image history will be affected)&#10;7. Final result: Only astronomy format files (or both formats if auto-delete is disabled)"
+                        Text="1. Enable this plugin&#10;2. Select the image format you want from Options -> Imaging -> File Settings&#10;3. You take an exposure with your Canon camera&#10;4. Plugin creates FITS/XISF/TIFF in your selected format&#10;5. Canon RAW file (CR3/CR2) is created automatically&#10;6. If auto-delete is enabled, CR3/CR2 is removed automatically&#10;7. Image history shows the FITS/XISF/TIFF path (works perfectly either way)&#10;8. Final result: Only astronomy format files (or both formats if auto-delete is disabled)"
                         Foreground="#000000"
                         FontSize="10"
                         TextWrapping="Wrap"
