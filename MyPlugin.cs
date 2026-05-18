@@ -240,28 +240,57 @@ namespace NINA.Plugin.CanonAstroImage {
         /// </summary>
         private void ReorderImageSavedHandlersToRunFirst() {
             try {
-                var mediatorType = imageSaveMediator.GetType();
                 var bindFlags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
 
-                // Find the backing field for the ImageSaved event
-                // C# events typically have a private backing field with the same name as the event
-                System.Reflection.FieldInfo eventField = null;
-                foreach (var field in mediatorType.GetFields(bindFlags)) {
-                    if (field.Name == "ImageSaved" || field.Name.Contains("ImageSaved")) {
-                        eventField = field;
-                        Logger.Info($"CanonAstronomyFormat: Found ImageSaved event field: {field.Name} (Type: {field.FieldType.Name})");
-                        break;
-                    }
-                }
-
-                if (eventField == null) {
-                    Logger.Warning("CanonAstronomyFormat: Could not find ImageSaved event backing field, falling back to normal subscription");
+                // ImageSaveMediator delegates the event to its internal "handler" field (IImageSaveController)
+                // The actual event backing field is on the ImageSaveController, not the mediator itself.
+                var mediatorType = imageSaveMediator.GetType();
+                var handlerField = mediatorType.GetField("handler", bindFlags);
+                if (handlerField == null) {
+                    Logger.Warning("CanonAstronomyFormat: Could not find 'handler' field on ImageSaveMediator, falling back to normal subscription");
                     imageSaveMediator.ImageSaved += ImageSaveMediator_ImageSaved;
                     return;
                 }
 
+                var handler = handlerField.GetValue(imageSaveMediator);
+                if (handler == null) {
+                    Logger.Warning("CanonAstronomyFormat: handler field is null, falling back to normal subscription");
+                    imageSaveMediator.ImageSaved += ImageSaveMediator_ImageSaved;
+                    return;
+                }
+
+                Logger.Info($"CanonAstronomyFormat: Found handler: {handler.GetType().FullName}");
+
+                // Now find the ImageSaved event backing field on the handler (ImageSaveController)
+                var handlerType = handler.GetType();
+                System.Reflection.FieldInfo eventField = null;
+
+                // Auto-generated event backing field is named the same as the event
+                eventField = handlerType.GetField("ImageSaved", bindFlags);
+
+                if (eventField == null) {
+                    // Try walking up the inheritance chain
+                    var currentType = handlerType;
+                    while (currentType != null && eventField == null) {
+                        eventField = currentType.GetField("ImageSaved", bindFlags);
+                        if (eventField != null) break;
+                        currentType = currentType.BaseType;
+                    }
+                }
+
+                if (eventField == null) {
+                    Logger.Warning("CanonAstronomyFormat: Could not find ImageSaved event backing field on handler, listing all fields:");
+                    foreach (var f in handlerType.GetFields(bindFlags)) {
+                        Logger.Info($"  Field: {f.Name} ({f.FieldType.Name})");
+                    }
+                    imageSaveMediator.ImageSaved += ImageSaveMediator_ImageSaved;
+                    return;
+                }
+
+                Logger.Info($"CanonAstronomyFormat: Found ImageSaved event field: {eventField.Name} (Type: {eventField.FieldType.Name})");
+
                 // Get the current delegate (combined event handlers)
-                var existingDelegate = eventField.GetValue(imageSaveMediator) as Delegate;
+                var existingDelegate = eventField.GetValue(handler) as Delegate;
                 Logger.Info($"CanonAstronomyFormat: Existing handlers count: {existingDelegate?.GetInvocationList().Length ?? 0}");
 
                 // Create our handler delegate
@@ -279,10 +308,10 @@ namespace NINA.Plugin.CanonAstroImage {
                     ? ourDelegate
                     : Delegate.Combine(ourDelegate, existingDelegate);
 
-                eventField.SetValue(imageSaveMediator, newDelegate);
+                eventField.SetValue(handler, newDelegate);
 
-                var finalDelegate = eventField.GetValue(imageSaveMediator) as Delegate;
-                Logger.Info($"CanonAstronomyFormat: After reordering, handlers count: {finalDelegate?.GetInvocationList().Length ?? 0}, our handler is first");
+                var finalDelegate = eventField.GetValue(handler) as Delegate;
+                Logger.Info($"CanonAstronomyFormat: After reordering, handlers count: {finalDelegate?.GetInvocationList().Length ?? 0}, our handler is now FIRST");
             } catch (Exception ex) {
                 Logger.Error($"CanonAstronomyFormat: Failed to reorder handlers: {ex.Message}\n{ex.StackTrace}");
                 // Fallback to normal subscription
