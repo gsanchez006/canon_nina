@@ -240,17 +240,27 @@ namespace NINA.Plugin.CanonAstroImage {
                 var entryType = lastEntry.GetType();
                 Logger.Info($"CanonAstronomyFormat: TrySyncUpdateHistoryEntry - Found last entry, Type: {entryType.Name}, Count: {history.Count}");
 
+                // Dump all public properties to understand the data structure
+                var props = entryType.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
+                Logger.Info($"CanonAstronomyFormat: Entry has {props.Length} public properties");
+                foreach (var prop in props) {
+                    var val = prop.GetValue(lastEntry);
+                    Logger.Info($"CanonAstronomyFormat:   {prop.Name}: '{val}' (CanWrite: {prop.CanWrite})");
+                }
+
                 // Try to get and update the LocalPath and Filename properties
                 var localPathProp = entryType.GetProperty("LocalPath", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
                 var filenameProp = entryType.GetProperty("Filename", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
 
                 string currentPath = localPathProp?.GetValue(lastEntry) as string;
-                Logger.Info($"CanonAstronomyFormat: Last entry LocalPath: '{currentPath}', looking for CR3: '{originalCrPath}'");
+                Logger.Info($"CanonAstronomyFormat: Last entry LocalPath: '{currentPath}', CanWrite: {localPathProp?.CanWrite}, looking for CR3: '{originalCrPath}'");
 
-                // Update regardless of current value - worst case we update the most recent entry
+                // Update if writable
                 if (localPathProp?.CanWrite == true) {
                     localPathProp.SetValue(lastEntry, newFitsPath);
                     Logger.Info($"CanonAstronomyFormat: Updated LocalPath to {newFitsPath}");
+                } else {
+                    Logger.Info($"CanonAstronomyFormat: LocalPath is read-only, cannot update");
                 }
                 if (filenameProp?.CanWrite == true) {
                     filenameProp.SetValue(lastEntry, Path.GetFileName(newFitsPath));
