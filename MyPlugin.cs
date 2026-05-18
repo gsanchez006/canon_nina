@@ -289,11 +289,25 @@ namespace NINA.Plugin.CanonAstroImage {
         /// </summary>
         private bool TryUpdateHistoryEntry(string oldCrPath, string newFitsPath) {
             try {
-                var history = imageHistoryVM?.ObservableImageHistory;
-                if (history == null || history.Count == 0) {
-                    Logger.Debug($"CanonAstronomyFormat: TryUpdateHistoryEntry - history is null or empty, cannot update");
+                Logger.Debug($"CanonAstronomyFormat: TryUpdateHistoryEntry - checking imageHistoryVM");
+
+                if (imageHistoryVM == null) {
+                    Logger.Warning($"CanonAstronomyFormat: imageHistoryVM is NULL - cannot access history");
                     return false;
                 }
+
+                var history = imageHistoryVM.ObservableImageHistory;
+                if (history == null) {
+                    Logger.Warning($"CanonAstronomyFormat: ObservableImageHistory is NULL");
+                    return false;
+                }
+
+                if (history.Count == 0) {
+                    Logger.Debug($"CanonAstronomyFormat: History collection is empty (count=0)");
+                    return false;
+                }
+
+                Logger.Info($"CanonAstronomyFormat: History collection has {history.Count} entries, attempting to find/update...");
 
                 // Search for entry: first try matching the CR3 path, then fall back to last entry
                 object entry = null;
