@@ -158,10 +158,9 @@ namespace NINA.Plugin.CanonAstroImage {
         /// Called AFTER the image is saved to disk and moved to final location
         ///
         /// Strategy:
-        /// 1. Look up the FITS file path from the task stored in BeforeImageSaved
-        /// 2. Mutate e.PathToImage to point to FITS instead of CR3 (works if handler runs first)
-        /// 3. Schedule deferred reflection-based history fix for when ImageHistoryVM runs first (safety net)
-        /// 4. Auto-delete CR3/CR2 if enabled
+        /// 1. Try early redirect via e.PathToImage (works if we run before NINA's handler)
+        /// 2. Schedule retry-based reflection update to find and fix the history entry
+        /// 3. Auto-delete CR3/CR2 if enabled
         /// </summary>
         private void ImageSaveMediator_ImageSaved(object sender, ImageSavedEventArgs e) {
             try {
@@ -172,19 +171,24 @@ namespace NINA.Plugin.CanonAstroImage {
                     return;
                 }
 
-                // Try to redirect image history to FITS path instead of CR3
                 var originalCrPath = e.PathToImage.LocalPath;
+                var fitsPathToUse = _lastFitsPath;
+                _lastFitsPath = null;  // Clear for next image
 
-                // Use the FITS path we saved in BeforeImageSaved (guaranteed to be available now)
-                if (!string.IsNullOrEmpty(_lastFitsPath)) {
-                    Logger.Info($"CanonAstronomyFormat: Redirecting PathToImage to FITS: {_lastFitsPath}");
-                    e.PathToImage = new Uri(_lastFitsPath);
-                    _lastFitsPath = null;  // Clear for next image
-                } else {
-                    Logger.Debug("CanonAstronomyFormat: No FITS path available for redirect");
+                // Attempt early redirect (may not work if NINA's handler runs first)
+                if (!string.IsNullOrEmpty(fitsPathToUse)) {
+                    Logger.Info($"CanonAstronomyFormat: Attempting early redirect to FITS: {fitsPathToUse}");
+                    e.PathToImage = new Uri(fitsPathToUse);
                 }
 
-                // AUTO-DELETE CR3/CR2 (uses updated e.PathToImage if history was redirected)
+                // Schedule retry-based history update (safety net for when NINA runs first)
+                if (!string.IsNullOrEmpty(fitsPathToUse)) {
+                    Application.Current?.Dispatcher?.BeginInvoke(
+                        DispatcherPriority.ApplicationIdle,
+                        (Action)(() => TryUpdateHistoryEntry(originalCrPath, fitsPathToUse, retryCount: 0)));
+                }
+
+                // AUTO-DELETE CR3/CR2
                 if (!this.AutoDeleteCanonRaw) {
                     Logger.Debug("CanonAstronomyFormat: Auto-delete disabled in plugin settings");
                     return;
@@ -212,6 +216,67 @@ namespace NINA.Plugin.CanonAstroImage {
                 Logger.Info($"CanonAstronomyFormat: Auto-deleted {path}");
             } catch (Exception ex) {
                 Logger.Error($"CanonAstronomyFormat: Failed to delete {path}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Retry-based history update: find the ImageHistoryPoint entry with the CR3 path
+        /// and update it to point to the FITS file via reflection.
+        /// Retries up to 20 times with 50ms delays to handle timing of NINA's history recording.
+        /// </summary>
+        private void TryUpdateHistoryEntry(string originalCrPath, string newFitsPath, int retryCount) {
+            const int maxRetries = 20;
+            const int delayMs = 50;
+
+            try {
+                var history = imageHistoryVM?.ObservableImageHistory;
+                if (history == null) {
+                    Logger.Debug("CanonAstronomyFormat: ObservableImageHistory is null, cannot update entry");
+                    return;
+                }
+
+                // Search for entry with the original CR3 path
+                object foundEntry = null;
+                foreach (var item in history) {
+                    var localPath = item?.GetType().GetProperty("LocalPath")?.GetValue(item) as string;
+                    if (string.Equals(localPath, originalCrPath, StringComparison.OrdinalIgnoreCase)) {
+                        foundEntry = item;
+                        break;
+                    }
+                }
+
+                if (foundEntry != null) {
+                    // Found the entry - update it via reflection
+                    Logger.Debug($"CanonAstronomyFormat: Found history entry, updating from CR3 to FITS (retry #{retryCount})");
+
+                    var entryType = foundEntry.GetType();
+                    var localPathProp = entryType.GetProperty("LocalPath", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
+                    var filenameProp = entryType.GetProperty("Filename", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
+
+                    if (localPathProp?.CanWrite == true) {
+                        localPathProp.SetValue(foundEntry, newFitsPath);
+                    }
+                    if (filenameProp?.CanWrite == true) {
+                        filenameProp.SetValue(foundEntry, Path.GetFileName(newFitsPath));
+                    }
+
+                    Logger.Info($"CanonAstronomyFormat: Updated history entry to {newFitsPath}");
+                    return;
+                }
+
+                // Entry not found - retry if we haven't exceeded limit
+                if (retryCount < maxRetries) {
+                    Logger.Debug($"CanonAstronomyFormat: History entry not found yet, retrying in {delayMs}ms (attempt {retryCount + 1}/{maxRetries})");
+                    Application.Current?.Dispatcher?.BeginInvoke(
+                        DispatcherPriority.ApplicationIdle,
+                        (Action)(() => Task.Delay(delayMs).ContinueWith(_ =>
+                            TryUpdateHistoryEntry(originalCrPath, newFitsPath, retryCount + 1))));
+                } else {
+                    Logger.Warning($"CanonAstronomyFormat: Could not find history entry after {maxRetries} retries");
+                }
+
+            } catch (Exception ex) {
+                Logger.Error($"CanonAstronomyFormat.TryUpdateHistoryEntry failed: {ex.Message}\n{ex.StackTrace}");
             }
         }
 
