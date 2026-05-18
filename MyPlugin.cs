@@ -218,8 +218,8 @@ namespace NINA.Plugin.CanonAstroImage {
         }
 
         /// <summary>
-        /// Synchronous history update: find the most recently added history entry
-        /// and update it to point to FITS instead of CR3.
+        /// Synchronous history update: find the history entry with the CR3 path
+        /// and update it to point to FITS instead. Search through ALL entries to find the match.
         /// Runs on the current thread immediately (no delays, no Dispatcher callbacks).
         /// </summary>
         private void TrySyncUpdateHistoryEntry(string originalCrPath, string newFitsPath) {
@@ -230,44 +230,67 @@ namespace NINA.Plugin.CanonAstroImage {
                     return;
                 }
 
-                // Get the LAST entry (most recently added)
-                object lastEntry = history[history.Count - 1];
-                if (lastEntry == null) {
-                    Logger.Info("CanonAstronomyFormat: Last history entry is null");
+                var bindFlags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase;
+
+                // Search through ALL entries to find one with the CR3 path we're replacing
+                object foundEntry = null;
+                int foundIndex = -1;
+                for (int i = 0; i < history.Count; i++) {
+                    var item = history[i];
+                    if (item == null) continue;
+
+                    var itemType = item.GetType();
+                    var localPathProp = itemType.GetProperty("LocalPath", bindFlags);
+                    var localPath = localPathProp?.GetValue(item) as string;
+
+                    if (string.Equals(localPath, originalCrPath, StringComparison.OrdinalIgnoreCase)) {
+                        foundEntry = item;
+                        foundIndex = i;
+                        Logger.Info($"CanonAstronomyFormat: TrySyncUpdateHistoryEntry - Found matching entry at index {i}");
+                        break;
+                    }
+                }
+
+                if (foundEntry == null) {
+                    Logger.Info($"CanonAstronomyFormat: TrySyncUpdateHistoryEntry - No entry found with CR3 path: {originalCrPath}");
+                    Logger.Info($"CanonAstronomyFormat: History has {history.Count} entries. Showing first 3:");
+                    for (int i = 0; i < history.Count && i < 3; i++) {
+                        var item = history[i];
+                        if (item != null) {
+                            var itemType = item.GetType();
+                            var localPathProp = itemType.GetProperty("LocalPath", bindFlags);
+                            var localPath = localPathProp?.GetValue(item) as string;
+                            Logger.Info($"  Entry {i}: {localPath}");
+                        }
+                    }
                     return;
                 }
 
-                var entryType = lastEntry.GetType();
+                var entryType = foundEntry.GetType();
+                var beforeLocalPath = entryType.GetProperty("LocalPath", bindFlags)?.GetValue(foundEntry) as string;
+                var beforeFilename = entryType.GetProperty("Filename", bindFlags)?.GetValue(foundEntry) as string;
 
-                // Get current values BEFORE update to see what we're replacing
-                var bindFlags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase;
-                var localPathPropBefore = entryType.GetProperty("LocalPath", bindFlags);
-                var filenamePropBefore = entryType.GetProperty("Filename", bindFlags);
-                var beforeLocalPath = localPathPropBefore?.GetValue(lastEntry) as string;
-                var beforeFilename = filenamePropBefore?.GetValue(lastEntry) as string;
-
-                Logger.Info($"CanonAstronomyFormat: TrySyncUpdateHistoryEntry - Found last entry (index {history.Count-1}), Type: {entryType.Name}");
                 Logger.Info($"CanonAstronomyFormat:   BEFORE update - LocalPath: '{beforeLocalPath}', Filename: '{beforeFilename}'");
                 Logger.Info($"CanonAstronomyFormat:   Will UPDATE to - LocalPath: '{newFitsPath}', Filename: '{Path.GetFileName(newFitsPath)}'");
 
-                // Get LocalPath and Filename properties for update using same binding flags
-                var localPathProp = entryType.GetProperty("LocalPath", bindFlags);
+                // Get LocalPath and Filename properties for update
+                var localPathProp2 = entryType.GetProperty("LocalPath", bindFlags);
                 var filenameProp = entryType.GetProperty("Filename", bindFlags);
 
                 // Update if writable
-                if (localPathProp?.CanWrite == true) {
+                if (localPathProp2?.CanWrite == true) {
                     try {
-                        localPathProp.SetValue(lastEntry, newFitsPath);
+                        localPathProp2.SetValue(foundEntry, newFitsPath);
                         Logger.Info($"CanonAstronomyFormat: Successfully updated LocalPath to {newFitsPath}");
                     } catch (Exception ex) {
                         Logger.Error($"CanonAstronomyFormat: Error updating LocalPath: {ex.Message}");
                     }
                 } else {
-                    Logger.Info($"CanonAstronomyFormat: LocalPath property not writable (CanWrite: {localPathProp?.CanWrite})");
+                    Logger.Info($"CanonAstronomyFormat: LocalPath property not writable (CanWrite: {localPathProp2?.CanWrite})");
                 }
                 if (filenameProp?.CanWrite == true) {
                     try {
-                        filenameProp.SetValue(lastEntry, Path.GetFileName(newFitsPath));
+                        filenameProp.SetValue(foundEntry, Path.GetFileName(newFitsPath));
                         Logger.Info($"CanonAstronomyFormat: Successfully updated Filename to {Path.GetFileName(newFitsPath)}");
                     } catch (Exception ex) {
                         Logger.Error($"CanonAstronomyFormat: Error updating Filename: {ex.Message}");
