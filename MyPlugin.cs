@@ -240,12 +240,17 @@ namespace NINA.Plugin.CanonAstroImage {
                 var entryType = lastEntry.GetType();
                 Logger.Info($"CanonAstronomyFormat: TrySyncUpdateHistoryEntry - Found last entry, Type: {entryType.Name}, Count: {history.Count}");
 
-                // Dump all public properties to understand the data structure
-                var props = entryType.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
-                Logger.Info($"CanonAstronomyFormat: Entry has {props.Length} public properties");
-                foreach (var prop in props) {
-                    var val = prop.GetValue(lastEntry);
-                    Logger.Info($"CanonAstronomyFormat:   {prop.Name}: '{val}' (CanWrite: {prop.CanWrite})");
+                // Dump ALL properties (public, private, protected, internal) to understand the data structure
+                var allProps = entryType.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase);
+                Logger.Info($"CanonAstronomyFormat: Entry has {allProps.Length} total properties (public/private/protected/internal)");
+                for (int i = 0; i < allProps.Length && i < 20; i++) {  // Limit to first 20 to avoid spam
+                    var prop = allProps[i];
+                    try {
+                        var val = prop.GetValue(lastEntry);
+                        Logger.Info($"CanonAstronomyFormat:   {prop.Name}: '{val}' (CanWrite: {prop.CanWrite})");
+                    } catch (Exception ex) {
+                        Logger.Info($"CanonAstronomyFormat:   {prop.Name}: ERROR reading value - {ex.Message}");
+                    }
                 }
 
                 // Try to get and update the LocalPath and Filename properties
