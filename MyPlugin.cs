@@ -238,28 +238,21 @@ namespace NINA.Plugin.CanonAstroImage {
                 }
 
                 var entryType = lastEntry.GetType();
-                Logger.Info($"CanonAstronomyFormat: TrySyncUpdateHistoryEntry - Found last entry, Type: {entryType.Name}, Count: {history.Count}");
 
-                // Dump ALL properties (public, private, protected, internal) to understand the data structure
-                var allProps = entryType.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase);
-                Logger.Info($"CanonAstronomyFormat: Entry has {allProps.Length} total properties (public/private/protected/internal)");
-                for (int i = 0; i < allProps.Length && i < 20; i++) {  // Limit to first 20 to avoid spam
-                    var prop = allProps[i];
-                    try {
-                        var val = prop.GetValue(lastEntry);
-                        Logger.Info($"CanonAstronomyFormat:   {prop.Name}: '{val}' (CanWrite: {prop.CanWrite})");
-                    } catch (Exception ex) {
-                        Logger.Info($"CanonAstronomyFormat:   {prop.Name}: ERROR reading value - {ex.Message}");
-                    }
-                }
-
-                // Try to get and update the LocalPath and Filename properties using SAME binding flags as discovery
+                // Get current values BEFORE update to see what we're replacing
                 var bindFlags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.IgnoreCase;
+                var localPathPropBefore = entryType.GetProperty("LocalPath", bindFlags);
+                var filenamePropBefore = entryType.GetProperty("Filename", bindFlags);
+                var beforeLocalPath = localPathPropBefore?.GetValue(lastEntry) as string;
+                var beforeFilename = filenamePropBefore?.GetValue(lastEntry) as string;
+
+                Logger.Info($"CanonAstronomyFormat: TrySyncUpdateHistoryEntry - Found last entry (index {history.Count-1}), Type: {entryType.Name}");
+                Logger.Info($"CanonAstronomyFormat:   BEFORE update - LocalPath: '{beforeLocalPath}', Filename: '{beforeFilename}'");
+                Logger.Info($"CanonAstronomyFormat:   Will UPDATE to - LocalPath: '{newFitsPath}', Filename: '{Path.GetFileName(newFitsPath)}'");
+
+                // Get LocalPath and Filename properties for update using same binding flags
                 var localPathProp = entryType.GetProperty("LocalPath", bindFlags);
                 var filenameProp = entryType.GetProperty("Filename", bindFlags);
-
-                string currentPath = localPathProp?.GetValue(lastEntry) as string;
-                Logger.Info($"CanonAstronomyFormat: Last entry LocalPath: '{currentPath}', CanWrite: {localPathProp?.CanWrite}, looking for CR3: '{originalCrPath}'");
 
                 // Update if writable
                 if (localPathProp?.CanWrite == true) {
