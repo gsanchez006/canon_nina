@@ -252,32 +252,27 @@ namespace NINA.Plugin.CanonAstroImage {
         private void TryUpdateHistoryEntry(string oldCrPath, string newFitsPath) {
             try {
                 var history = imageHistoryVM?.ObservableImageHistory;
-                if (history == null || string.IsNullOrEmpty(oldCrPath)) {
-                    Logger.Warning($"CanonAstronomyFormat: TryUpdateHistoryEntry - history is null or oldCrPath is empty");
+                if (history == null || history.Count == 0) {
+                    Logger.Warning($"CanonAstronomyFormat: TryUpdateHistoryEntry - history is null or empty");
                     return;
                 }
 
-                Logger.Debug($"CanonAstronomyFormat: Looking for history entry with path: {oldCrPath}");
-                Logger.Debug($"CanonAstronomyFormat: History has {history.Count} entries");
+                Logger.Debug($"CanonAstronomyFormat: TryUpdateHistoryEntry - History has {history.Count} entries");
 
-                // Find the entry that was just added with the CR3 path
-                object entry = null;
-                int matchIndex = 0;
-                foreach (var item in history) {
-                    var itemLocalPath = item?.LocalPath;
-                    Logger.Debug($"CanonAstronomyFormat: Checking history[{matchIndex}]: {itemLocalPath}");
-                    if (string.Equals(itemLocalPath, oldCrPath, StringComparison.OrdinalIgnoreCase)) {
-                        entry = item;
-                        Logger.Info($"CanonAstronomyFormat: Found matching history entry at index {matchIndex}");
-                        break;
-                    }
-                    matchIndex++;
-                }
+                // Get the LAST entry in the history (it's the one we just added)
+                // This is more reliable than searching by path, in case the early redirect didn't work
+                object entry = history[history.Count - 1];
 
                 if (entry == null) {
-                    Logger.Warning($"CanonAstronomyFormat: No history entry found with path: {oldCrPath}");
+                    Logger.Warning($"CanonAstronomyFormat: Could not access last history entry");
                     return;
                 }
+
+                // Use reflection to get current path for logging
+                var entryType = entry.GetType();
+                var currentPathProp = entryType.GetProperty("LocalPath", BindingFlags.Public | BindingFlags.Instance);
+                var lastEntryPath = currentPathProp?.GetValue(entry);
+                Logger.Info($"CanonAstronomyFormat: Updating last history entry (currently: {lastEntryPath}) to {newFitsPath}");
 
                 // Use reflection to update private-set properties
                 var type = entry.GetType();
