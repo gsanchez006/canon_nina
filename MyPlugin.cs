@@ -255,36 +255,33 @@ namespace NINA.Plugin.CanonAstroImage {
         /// Schedule retries to update history with increasing delays to allow NINA to record entry first
         /// </summary>
         private void ScheduleHistoryUpdate(string oldCrPath, string newFitsPath, int attemptNumber) {
-            const int maxAttempts = 8;
-
-            Logger.Debug($"CanonAstronomyFormat: ScheduleHistoryUpdate called - attempt {attemptNumber}, CR path: {Path.GetFileName(oldCrPath)}");
+            const int maxAttempts = 5;
 
             if (attemptNumber >= maxAttempts) {
-                Logger.Error($"CanonAstronomyFormat: History update abandoned after {maxAttempts} attempts");
+                Logger.Debug($"CanonAstronomyFormat: History update - max attempts reached after {maxAttempts} retries");
                 return;
             }
 
-            Logger.Debug($"CanonAstronomyFormat: Attempt {attemptNumber} - calling TryUpdateHistoryEntry");
             if (TryUpdateHistoryEntry(oldCrPath, newFitsPath)) {
-                Logger.Info($"CanonAstronomyFormat: Successfully updated history entry!");
+                Logger.Info($"CanonAstronomyFormat: Successfully updated history entry on attempt {attemptNumber + 1}");
                 return; // Success!
             }
 
-            Logger.Debug($"CanonAstronomyFormat: Attempt {attemptNumber} - TryUpdateHistoryEntry returned false");
-
-            // Calculate delay: 50ms, 100ms, 150ms, 200ms, 250ms, 300ms, 350ms, 400ms
-            int delayMs = 50 * (attemptNumber + 1);
+            // Calculate delay: 200ms, 400ms, 600ms, 800ms, 1000ms
+            int delayMs = 200 * (attemptNumber + 1);
 
             Logger.Debug($"CanonAstronomyFormat: History update attempt {attemptNumber + 1} failed, scheduling retry in {delayMs}ms");
 
-            // Schedule next attempt via dispatcher with a non-blocking timer
-            var timer = new System.Timers.Timer(delayMs) { AutoReset = false };
-            timer.Elapsed += (s, e) => {
-                timer.Dispose();
-                Application.Current?.Dispatcher?.BeginInvoke(
-                    DispatcherPriority.Normal,
-                    new Action(() => ScheduleHistoryUpdate(oldCrPath, newFitsPath, attemptNumber + 1)));
+            // Use DispatcherTimer which is managed by WPF and won't be garbage collected
+            var timer = new DispatcherTimer(DispatcherPriority.Normal, Application.Current.Dispatcher) {
+                Interval = TimeSpan.FromMilliseconds(delayMs)
             };
+
+            timer.Tick += (s, e) => {
+                timer.Stop();
+                ScheduleHistoryUpdate(oldCrPath, newFitsPath, attemptNumber + 1);
+            };
+
             timer.Start();
         }
 
