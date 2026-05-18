@@ -195,18 +195,28 @@ namespace NINA.Plugin.CanonAstroImage {
                                 e.PathToImage = new Uri(fitsPath);
 
                                 // STRATEGY B: Schedule deferred reflection fix as safety net
-                                // (works when ImageHistoryVM runs first and we need to fix its entry after the fact)
                                 var fitsPathCopy = fitsPath;
                                 var crPathCopy = originalCrPath;
 
-                                // Use Dispatcher.BeginInvoke with a custom action that retries with delays
-                                // This must run on the UI thread to access the ObservableImageHistory collection
-                                Application.Current?.Dispatcher?.BeginInvoke(
-                                    DispatcherPriority.SystemIdle,
-                                    new Action(() => {
-                                        // Schedule retry attempts using a helper
-                                        ScheduleHistoryUpdate(crPathCopy, fitsPathCopy, attemptNumber: 0);
-                                    }));
+                                try {
+                                    var dispatcher = Application.Current?.Dispatcher;
+                                    if (dispatcher == null) {
+                                        Logger.Warning("CanonAstronomyFormat: Cannot schedule history update - Dispatcher is null");
+                                    } else {
+                                        dispatcher.BeginInvoke(
+                                            DispatcherPriority.SystemIdle,
+                                            new Action(() => {
+                                                try {
+                                                    Logger.Debug($"CanonAstronomyFormat: Dispatcher callback executing for {Path.GetFileName(crPathCopy)}");
+                                                    ScheduleHistoryUpdate(crPathCopy, fitsPathCopy, attemptNumber: 0);
+                                                } catch (Exception ex2) {
+                                                    Logger.Error($"CanonAstronomyFormat: Exception in dispatcher callback: {ex2.Message}");
+                                                }
+                                            }));
+                                    }
+                                } catch (Exception ex) {
+                                    Logger.Error($"CanonAstronomyFormat: Exception scheduling dispatcher callback: {ex.Message}");
+                                }
                             } else {
                                 Logger.Warning("CanonAstronomyFormat: FITS save task completed but returned empty path");
                             }
