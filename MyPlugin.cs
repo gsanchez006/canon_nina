@@ -227,8 +227,47 @@ namespace NINA.Plugin.CanonAstroImage {
         /// and update it to point to FITS instead. Search through ALL entries to find the match.
         /// Runs on the current thread immediately (no delays, no Dispatcher callbacks).
         /// </summary>
+        private bool _dumpedVmInfo = false;
         private void TrySyncUpdateHistoryEntry(string originalCrPath, string newFitsPath) {
             try {
+                // ONE-TIME: Dump all properties/fields of imageHistoryVM to find UI-bound collection
+                if (!_dumpedVmInfo) {
+                    _dumpedVmInfo = true;
+                    Logger.Info("CanonAstronomyFormat: ===== INSPECTING imageHistoryVM =====");
+                    var vmType = imageHistoryVM.GetType();
+                    Logger.Info($"  Type: {vmType.FullName}");
+
+                    var bindFlagsAll = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+                    foreach (var prop in vmType.GetProperties(bindFlagsAll)) {
+                        try {
+                            var val = prop.GetValue(imageHistoryVM);
+                            var typeName = val?.GetType().Name ?? "null";
+                            if (val is System.Collections.ICollection coll) {
+                                Logger.Info($"  PROP {prop.Name}: {typeName} (Count: {coll.Count})");
+                            } else {
+                                Logger.Info($"  PROP {prop.Name}: {typeName} = {val}");
+                            }
+                        } catch (Exception ex) {
+                            Logger.Info($"  PROP {prop.Name}: ERROR - {ex.Message}");
+                        }
+                    }
+
+                    foreach (var field in vmType.GetFields(bindFlagsAll)) {
+                        try {
+                            var val = field.GetValue(imageHistoryVM);
+                            var typeName = val?.GetType().Name ?? "null";
+                            if (val is System.Collections.ICollection coll) {
+                                Logger.Info($"  FIELD {field.Name}: {typeName} (Count: {coll.Count})");
+                            } else {
+                                Logger.Info($"  FIELD {field.Name}: {typeName} = {val}");
+                            }
+                        } catch (Exception ex) {
+                            Logger.Info($"  FIELD {field.Name}: ERROR - {ex.Message}");
+                        }
+                    }
+                    Logger.Info("CanonAstronomyFormat: ===== END INSPECTION =====");
+                }
+
                 var history = imageHistoryVM?.ObservableImageHistory;
                 if (history == null || history.Count == 0) {
                     Logger.Info("CanonAstronomyFormat: TrySyncUpdateHistoryEntry - History collection is null or empty");
