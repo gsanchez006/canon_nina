@@ -180,29 +180,37 @@ namespace NINA.Plugin.CanonAstroImage {
                 var originalCrPath = e.PathToImage.LocalPath;
                 var exposureStart = e.MetaData?.Image?.ExposureStart ?? DateTime.MinValue;
 
-                if (exposureStart != DateTime.MinValue &&
-                    _pendingFitsPaths.TryRemove(exposureStart, out var fitsTask)) {
-                    try {
-                        // Wait for FITS save to complete (safe: we're on ThreadPool thread)
-                        var fitsPath = fitsTask.GetAwaiter().GetResult();
-                        if (!string.IsNullOrEmpty(fitsPath)) {
-                            Logger.Debug($"CanonAstronomyFormat: Redirecting history from CR3 to {fitsPath}");
+                Logger.Debug($"CanonAstronomyFormat: ImageSaved - Looking for FITS path with ExposureStart: {exposureStart:O}");
 
-                            // STRATEGY A: Mutate e.PathToImage early (works if our handler runs before ImageHistoryVM)
-                            e.PathToImage = new Uri(fitsPath);
+                if (exposureStart != DateTime.MinValue) {
+                    if (_pendingFitsPaths.TryRemove(exposureStart, out var fitsTask)) {
+                        try {
+                            // Wait for FITS save to complete (safe: we're on ThreadPool thread)
+                            var fitsPath = fitsTask.GetAwaiter().GetResult();
+                            if (!string.IsNullOrEmpty(fitsPath)) {
+                                Logger.Info($"CanonAstronomyFormat: Early redirect - Setting PathToImage to FITS: {fitsPath}");
 
-                            // STRATEGY B: Schedule deferred reflection fix as safety net
-                            // (works when ImageHistoryVM runs first and we need to fix its entry after the fact)
-                            var fitsPathCopy = fitsPath;
-                            var crPathCopy = originalCrPath;
-                            Application.Current?.Dispatcher?.BeginInvoke(
-                                DispatcherPriority.ApplicationIdle,
-                                (Action)(() => TryUpdateHistoryEntry(crPathCopy, fitsPathCopy)));
+                                // STRATEGY A: Mutate e.PathToImage early (works if our handler runs before ImageHistoryVM)
+                                e.PathToImage = new Uri(fitsPath);
+
+                                // STRATEGY B: Schedule deferred reflection fix as safety net
+                                // (works when ImageHistoryVM runs first and we need to fix its entry after the fact)
+                                var fitsPathCopy = fitsPath;
+                                var crPathCopy = originalCrPath;
+                                Application.Current?.Dispatcher?.BeginInvoke(
+                                    DispatcherPriority.ApplicationIdle,
+                                    (Action)(() => TryUpdateHistoryEntry(crPathCopy, fitsPathCopy)));
+                            } else {
+                                Logger.Warning("CanonAstronomyFormat: FITS save task completed but returned empty path");
+                            }
+                        } catch (Exception ex) {
+                            Logger.Error($"CanonAstronomyFormat: Failed to resolve FITS path: {ex.Message}\n{ex.StackTrace}");
                         }
-                    } catch (Exception ex) {
-                        Logger.Error($"CanonAstronomyFormat: Failed to resolve FITS path: {ex.Message}");
-                        _pendingFitsPaths.TryRemove(exposureStart, out _);  // Cleanup on error
+                    } else {
+                        Logger.Warning($"CanonAstronomyFormat: No FITS path found in pending dictionary for ExposureStart {exposureStart:O}. Dictionary has {_pendingFitsPaths.Count} entries");
                     }
+                } else {
+                    Logger.Warning("CanonAstronomyFormat: Could not get ExposureStart from MetaData");
                 }
 
                 // AUTO-DELETE CR3/CR2 (uses updated e.PathToImage if history was redirected)
@@ -244,27 +252,51 @@ namespace NINA.Plugin.CanonAstroImage {
         private void TryUpdateHistoryEntry(string oldCrPath, string newFitsPath) {
             try {
                 var history = imageHistoryVM?.ObservableImageHistory;
-                if (history == null || string.IsNullOrEmpty(oldCrPath)) return;
+                if (history == null || string.IsNullOrEmpty(oldCrPath)) {
+                    Logger.Warning($"CanonAstronomyFormat: TryUpdateHistoryEntry - history is null or oldCrPath is empty");
+                    return;
+                }
+
+                Logger.Debug($"CanonAstronomyFormat: Looking for history entry with path: {oldCrPath}");
+                Logger.Debug($"CanonAstronomyFormat: History has {history.Count} entries");
 
                 // Find the entry that was just added with the CR3 path
                 object entry = null;
+                int matchIndex = 0;
                 foreach (var item in history) {
                     var itemLocalPath = item?.LocalPath;
+                    Logger.Debug($"CanonAstronomyFormat: Checking history[{matchIndex}]: {itemLocalPath}");
                     if (string.Equals(itemLocalPath, oldCrPath, StringComparison.OrdinalIgnoreCase)) {
                         entry = item;
+                        Logger.Info($"CanonAstronomyFormat: Found matching history entry at index {matchIndex}");
                         break;
                     }
+                    matchIndex++;
                 }
-                if (entry == null) return;
+
+                if (entry == null) {
+                    Logger.Warning($"CanonAstronomyFormat: No history entry found with path: {oldCrPath}");
+                    return;
+                }
 
                 // Use reflection to update private-set properties
                 var type = entry.GetType();
 
                 var localPathProp = type.GetProperty("LocalPath", BindingFlags.Public | BindingFlags.Instance);
-                localPathProp?.SetValue(entry, newFitsPath);
+                if (localPathProp != null && localPathProp.CanWrite) {
+                    localPathProp.SetValue(entry, newFitsPath);
+                    Logger.Info($"CanonAstronomyFormat: Updated LocalPath property to {newFitsPath}");
+                } else {
+                    Logger.Warning("CanonAstronomyFormat: LocalPath property is read-only or not found");
+                }
 
                 var filenameProp = type.GetProperty("Filename", BindingFlags.Public | BindingFlags.Instance);
-                filenameProp?.SetValue(entry, Path.GetFileName(newFitsPath));
+                if (filenameProp != null && filenameProp.CanWrite) {
+                    filenameProp.SetValue(entry, Path.GetFileName(newFitsPath));
+                    Logger.Info($"CanonAstronomyFormat: Updated Filename property");
+                } else {
+                    Logger.Warning("CanonAstronomyFormat: Filename property is read-only or not found");
+                }
 
                 // Try to raise PropertyChanged for UI update
                 var raiseMethod = type.GetMethod("RaisePropertyChanged",
@@ -274,11 +306,14 @@ namespace NINA.Plugin.CanonAstroImage {
                 if (raiseMethod != null) {
                     raiseMethod.Invoke(entry, new object[] { "LocalPath" });
                     raiseMethod.Invoke(entry, new object[] { "Filename" });
+                    Logger.Info("CanonAstronomyFormat: Invoked PropertyChanged notifications");
+                } else {
+                    Logger.Warning("CanonAstronomyFormat: Could not find RaisePropertyChanged or OnPropertyChanged method");
                 }
 
-                Logger.Info($"CanonAstronomyFormat: Updated history entry LocalPath from CR3 to {newFitsPath}");
+                Logger.Info($"CanonAstronomyFormat: Successfully updated history entry");
             } catch (Exception ex) {
-                Logger.Warning($"CanonAstronomyFormat: Could not update image history entry: {ex.Message}");
+                Logger.Error($"CanonAstronomyFormat: Exception in TryUpdateHistoryEntry: {ex.Message}\n{ex.StackTrace}");
             }
         }
 
