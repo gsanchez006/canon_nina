@@ -64,13 +64,16 @@ namespace NINA.Plugin.CanonAstroImage {
                 profileService.ProfileChanged += ProfileService_ProfileChanged;
 
                 // CRITICAL: Subscribe to image save pipeline BEFORE image is written to disk
-                // Plugin will actively invoke NINA's native image writers
                 this.imageSaveMediator.BeforeImageSaved += ImageSaveMediator_BeforeImageSaved;
-                this.imageSaveMediator.ImageSaved += ImageSaveMediator_ImageSaved;
+
+                // CRITICAL FIX: Subscribe our ImageSaved handler FIRST, before NINA's existing handlers
+                // NINA's ImageHistoryVM subscribes in its constructor (before plugins load), so by default
+                // it runs first and captures the CR3 path before we can redirect it.
+                // Solution: Use reflection to remove all existing handlers, add ours first, then re-add others.
+                ReorderImageSavedHandlersToRunFirst();
 
                 Logger.Info("CanonAstronomyFormat plugin initialized - Will create FITS/XISF/TIFF from Canon RAW images");
-                Logger.Debug("Plugin actively invokes NINA native image writers for astronomy formats");
-                Logger.Debug("Plugin can auto-delete CR3/CR2 files if enabled in plugin settings");
+                Logger.Info("Plugin's ImageSaved handler reordered to run FIRST so PathToImage redirect works");
 
             } catch (Exception ex) {
                 Logger.Error($"CanonAstronomyFormat: Constructor failed: {ex.Message}\n{ex.StackTrace}");
@@ -219,6 +222,71 @@ namespace NINA.Plugin.CanonAstroImage {
                 Logger.Info($"CanonAstronomyFormat: Auto-deleted {path}");
             } catch (Exception ex) {
                 Logger.Error($"CanonAstronomyFormat: Failed to delete {path}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// CRITICAL: Reorder ImageSaved event handlers so OUR handler runs FIRST.
+        ///
+        /// Problem: NINA's ImageHistoryVM subscribes to ImageSaved in its constructor,
+        /// which runs BEFORE plugins load. By default, .NET invokes event handlers in
+        /// subscription order, so NINA's handler runs first and reads e.PathToImage
+        /// (the CR3 path) into the history entry via PopulateProperties() BEFORE we
+        /// can modify it.
+        ///
+        /// Solution: Use reflection to access the event's backing delegate field,
+        /// remove all existing handlers, add OUR handler first, then re-add the
+        /// existing handlers. This puts our handler at the head of the invocation list.
+        /// </summary>
+        private void ReorderImageSavedHandlersToRunFirst() {
+            try {
+                var mediatorType = imageSaveMediator.GetType();
+                var bindFlags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public;
+
+                // Find the backing field for the ImageSaved event
+                // C# events typically have a private backing field with the same name as the event
+                System.Reflection.FieldInfo eventField = null;
+                foreach (var field in mediatorType.GetFields(bindFlags)) {
+                    if (field.Name == "ImageSaved" || field.Name.Contains("ImageSaved")) {
+                        eventField = field;
+                        Logger.Info($"CanonAstronomyFormat: Found ImageSaved event field: {field.Name} (Type: {field.FieldType.Name})");
+                        break;
+                    }
+                }
+
+                if (eventField == null) {
+                    Logger.Warning("CanonAstronomyFormat: Could not find ImageSaved event backing field, falling back to normal subscription");
+                    imageSaveMediator.ImageSaved += ImageSaveMediator_ImageSaved;
+                    return;
+                }
+
+                // Get the current delegate (combined event handlers)
+                var existingDelegate = eventField.GetValue(imageSaveMediator) as Delegate;
+                Logger.Info($"CanonAstronomyFormat: Existing handlers count: {existingDelegate?.GetInvocationList().Length ?? 0}");
+
+                // Create our handler delegate
+                var ourMethod = typeof(CanonAstroImage).GetMethod(nameof(ImageSaveMediator_ImageSaved), bindFlags);
+                if (ourMethod == null) {
+                    Logger.Error("CanonAstronomyFormat: Could not find our ImageSaveMediator_ImageSaved method via reflection");
+                    imageSaveMediator.ImageSaved += ImageSaveMediator_ImageSaved;
+                    return;
+                }
+
+                var ourDelegate = Delegate.CreateDelegate(eventField.FieldType, this, ourMethod);
+
+                // Combine: our handler FIRST, then existing handlers
+                var newDelegate = existingDelegate == null
+                    ? ourDelegate
+                    : Delegate.Combine(ourDelegate, existingDelegate);
+
+                eventField.SetValue(imageSaveMediator, newDelegate);
+
+                var finalDelegate = eventField.GetValue(imageSaveMediator) as Delegate;
+                Logger.Info($"CanonAstronomyFormat: After reordering, handlers count: {finalDelegate?.GetInvocationList().Length ?? 0}, our handler is first");
+            } catch (Exception ex) {
+                Logger.Error($"CanonAstronomyFormat: Failed to reorder handlers: {ex.Message}\n{ex.StackTrace}");
+                // Fallback to normal subscription
+                imageSaveMediator.ImageSaved += ImageSaveMediator_ImageSaved;
             }
         }
 
