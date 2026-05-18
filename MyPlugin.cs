@@ -235,10 +235,21 @@ namespace NINA.Plugin.CanonAstroImage {
                     return;
                 }
 
+                Logger.Debug($"CanonAstronomyFormat: History collection count: {history.Count}, searching for CR3: {originalCrPath}");
+
                 // Search for entry with the original CR3 path
                 object foundEntry = null;
                 foreach (var item in history) {
-                    var localPath = item?.GetType().GetProperty("LocalPath")?.GetValue(item) as string;
+                    if (item == null) continue;
+
+                    var itemType = item.GetType();
+                    var localPathProp = itemType.GetProperty("LocalPath", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
+                    var localPath = localPathProp?.GetValue(item) as string;
+
+                    if (retryCount == 0) {
+                        Logger.Debug($"CanonAstronomyFormat: History item found - LocalPath: {localPath}, Type: {itemType.Name}");
+                    }
+
                     if (string.Equals(localPath, originalCrPath, StringComparison.OrdinalIgnoreCase)) {
                         foundEntry = item;
                         break;
@@ -266,11 +277,14 @@ namespace NINA.Plugin.CanonAstroImage {
 
                 // Entry not found - retry if we haven't exceeded limit
                 if (retryCount < maxRetries) {
-                    Logger.Debug($"CanonAstronomyFormat: History entry not found yet, retrying in {delayMs}ms (attempt {retryCount + 1}/{maxRetries})");
-                    Application.Current?.Dispatcher?.BeginInvoke(
-                        DispatcherPriority.ApplicationIdle,
-                        (Action)(() => Task.Delay(delayMs).ContinueWith(_ =>
-                            TryUpdateHistoryEntry(originalCrPath, newFitsPath, retryCount + 1))));
+                    Logger.Debug($"CanonAstronomyFormat: History entry not found, retrying in {delayMs}ms (attempt {retryCount + 1}/{maxRetries})");
+                    var delayedRetry = async () => {
+                        await Task.Delay(delayMs);
+                        Application.Current?.Dispatcher?.BeginInvoke(
+                            DispatcherPriority.ApplicationIdle,
+                            (Action)(() => TryUpdateHistoryEntry(originalCrPath, newFitsPath, retryCount + 1)));
+                    };
+                    _ = delayedRetry();
                 } else {
                     Logger.Warning($"CanonAstronomyFormat: Could not find history entry after {maxRetries} retries");
                 }
