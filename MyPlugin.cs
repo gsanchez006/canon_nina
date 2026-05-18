@@ -181,11 +181,9 @@ namespace NINA.Plugin.CanonAstroImage {
                     e.PathToImage = new Uri(fitsPathToUse);
                 }
 
-                // Schedule retry-based history update (safety net for when NINA runs first)
+                // Try synchronous history update (on current thread, same handler invocation)
                 if (!string.IsNullOrEmpty(fitsPathToUse)) {
-                    Application.Current?.Dispatcher?.BeginInvoke(
-                        DispatcherPriority.ApplicationIdle,
-                        (Action)(() => TryUpdateHistoryEntry(originalCrPath, fitsPathToUse, retryCount: 0)));
+                    TrySyncUpdateHistoryEntry(originalCrPath, fitsPathToUse);
                 }
 
                 // AUTO-DELETE CR3/CR2
@@ -216,6 +214,50 @@ namespace NINA.Plugin.CanonAstroImage {
                 Logger.Info($"CanonAstronomyFormat: Auto-deleted {path}");
             } catch (Exception ex) {
                 Logger.Error($"CanonAstronomyFormat: Failed to delete {path}: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Synchronous history update: find the most recently added history entry
+        /// and update it to point to FITS instead of CR3.
+        /// Runs on the current thread immediately (no delays, no Dispatcher callbacks).
+        /// </summary>
+        private void TrySyncUpdateHistoryEntry(string originalCrPath, string newFitsPath) {
+            try {
+                var history = imageHistoryVM?.ObservableImageHistory;
+                if (history == null || history.Count == 0) {
+                    Logger.Info("CanonAstronomyFormat: TrySyncUpdateHistoryEntry - History collection is null or empty");
+                    return;
+                }
+
+                // Get the LAST entry (most recently added)
+                object lastEntry = history[history.Count - 1];
+                if (lastEntry == null) {
+                    Logger.Info("CanonAstronomyFormat: Last history entry is null");
+                    return;
+                }
+
+                var entryType = lastEntry.GetType();
+                Logger.Info($"CanonAstronomyFormat: TrySyncUpdateHistoryEntry - Found last entry, Type: {entryType.Name}, Count: {history.Count}");
+
+                // Try to get and update the LocalPath and Filename properties
+                var localPathProp = entryType.GetProperty("LocalPath", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
+                var filenameProp = entryType.GetProperty("Filename", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.IgnoreCase);
+
+                string currentPath = localPathProp?.GetValue(lastEntry) as string;
+                Logger.Info($"CanonAstronomyFormat: Last entry LocalPath: '{currentPath}', looking for CR3: '{originalCrPath}'");
+
+                // Update regardless of current value - worst case we update the most recent entry
+                if (localPathProp?.CanWrite == true) {
+                    localPathProp.SetValue(lastEntry, newFitsPath);
+                    Logger.Info($"CanonAstronomyFormat: Updated LocalPath to {newFitsPath}");
+                }
+                if (filenameProp?.CanWrite == true) {
+                    filenameProp.SetValue(lastEntry, Path.GetFileName(newFitsPath));
+                    Logger.Info($"CanonAstronomyFormat: Updated Filename to {Path.GetFileName(newFitsPath)}");
+                }
+            } catch (Exception ex) {
+                Logger.Error($"CanonAstronomyFormat.TrySyncUpdateHistoryEntry failed: {ex.Message}\n{ex.StackTrace}");
             }
         }
 
