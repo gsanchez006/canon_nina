@@ -257,14 +257,20 @@ namespace NINA.Plugin.CanonAstroImage {
         private void ScheduleHistoryUpdate(string oldCrPath, string newFitsPath, int attemptNumber) {
             const int maxAttempts = 8;
 
+            Logger.Debug($"CanonAstronomyFormat: ScheduleHistoryUpdate called - attempt {attemptNumber}, CR path: {Path.GetFileName(oldCrPath)}");
+
             if (attemptNumber >= maxAttempts) {
                 Logger.Error($"CanonAstronomyFormat: History update abandoned after {maxAttempts} attempts");
                 return;
             }
 
+            Logger.Debug($"CanonAstronomyFormat: Attempt {attemptNumber} - calling TryUpdateHistoryEntry");
             if (TryUpdateHistoryEntry(oldCrPath, newFitsPath)) {
+                Logger.Info($"CanonAstronomyFormat: Successfully updated history entry!");
                 return; // Success!
             }
+
+            Logger.Debug($"CanonAstronomyFormat: Attempt {attemptNumber} - TryUpdateHistoryEntry returned false");
 
             // Calculate delay: 50ms, 100ms, 150ms, 200ms, 250ms, 300ms, 350ms, 400ms
             int delayMs = 50 * (attemptNumber + 1);
