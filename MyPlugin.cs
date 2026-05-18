@@ -19,6 +19,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Timers;
 using System.Windows;
 using System.Windows.Threading;
 using Settings = NINA.Plugin.CanonAstroImage.Properties.Settings;
@@ -198,11 +199,14 @@ namespace NINA.Plugin.CanonAstroImage {
                                 var fitsPathCopy = fitsPath;
                                 var crPathCopy = originalCrPath;
 
-                                // Use Dispatcher to run on UI thread (required for safe access to ObservableImageHistory)
-                                // Use SystemIdle priority to run after NINA's handler is completely done
+                                // Use Dispatcher.BeginInvoke with a custom action that retries with delays
+                                // This must run on the UI thread to access the ObservableImageHistory collection
                                 Application.Current?.Dispatcher?.BeginInvoke(
                                     DispatcherPriority.SystemIdle,
-                                    (Action)(() => TryUpdateHistoryEntry(crPathCopy, fitsPathCopy)));
+                                    new Action(() => {
+                                        // Schedule retry attempts using a helper
+                                        ScheduleHistoryUpdate(crPathCopy, fitsPathCopy, attemptNumber: 0);
+                                    }));
                             } else {
                                 Logger.Warning("CanonAstronomyFormat: FITS save task completed but returned empty path");
                             }
@@ -248,16 +252,47 @@ namespace NINA.Plugin.CanonAstroImage {
         }
 
         /// <summary>
+        /// Schedule retries to update history with increasing delays to allow NINA to record entry first
+        /// </summary>
+        private void ScheduleHistoryUpdate(string oldCrPath, string newFitsPath, int attemptNumber) {
+            const int maxAttempts = 8;
+
+            if (attemptNumber >= maxAttempts) {
+                Logger.Error($"CanonAstronomyFormat: History update abandoned after {maxAttempts} attempts");
+                return;
+            }
+
+            if (TryUpdateHistoryEntry(oldCrPath, newFitsPath)) {
+                return; // Success!
+            }
+
+            // Calculate delay: 50ms, 100ms, 150ms, 200ms, 250ms, 300ms, 350ms, 400ms
+            int delayMs = 50 * (attemptNumber + 1);
+
+            Logger.Debug($"CanonAstronomyFormat: History update attempt {attemptNumber + 1} failed, scheduling retry in {delayMs}ms");
+
+            // Schedule next attempt via dispatcher with a non-blocking timer
+            var timer = new System.Timers.Timer(delayMs) { AutoReset = false };
+            timer.Elapsed += (s, e) => {
+                timer.Dispose();
+                Application.Current?.Dispatcher?.BeginInvoke(
+                    DispatcherPriority.Normal,
+                    new Action(() => ScheduleHistoryUpdate(oldCrPath, newFitsPath, attemptNumber + 1)));
+            };
+            timer.Start();
+        }
+
+        /// <summary>
         /// Update an already-recorded ImageHistoryPoint entry to point to FITS path instead of CR3
         /// Uses reflection to work around private setters
-        /// Runs on UI thread via Dispatcher at SystemIdle priority
+        /// Returns true if successful, false if history not yet populated or entry not found
         /// </summary>
-        private void TryUpdateHistoryEntry(string oldCrPath, string newFitsPath) {
+        private bool TryUpdateHistoryEntry(string oldCrPath, string newFitsPath) {
             try {
                 var history = imageHistoryVM?.ObservableImageHistory;
                 if (history == null || history.Count == 0) {
-                    Logger.Warning($"CanonAstronomyFormat: TryUpdateHistoryEntry - history is null or empty");
-                    return;
+                    Logger.Debug($"CanonAstronomyFormat: TryUpdateHistoryEntry - history is null or empty, cannot update");
+                    return false;
                 }
 
                 // Search for entry: first try matching the CR3 path, then fall back to last entry
@@ -285,8 +320,8 @@ namespace NINA.Plugin.CanonAstroImage {
                 }
 
                 if (entry == null) {
-                    Logger.Warning($"CanonAstronomyFormat: Could not find history entry to update");
-                    return;
+                    Logger.Debug($"CanonAstronomyFormat: Could not find history entry to update");
+                    return false;
                 }
 
                 Logger.Info($"CanonAstronomyFormat: Updating history entry (currently: {foundPath}) to {newFitsPath}");
@@ -355,11 +390,14 @@ namespace NINA.Plugin.CanonAstroImage {
                         Logger.Warning($"CanonAstronomyFormat: Could not raise PropertyChanged: {ex.Message}");
                     }
                     Logger.Info($"CanonAstronomyFormat: Successfully updated history entry");
+                    return true;
                 } else {
-                    Logger.Warning($"CanonAstronomyFormat: Could not update any history properties");
+                    Logger.Debug($"CanonAstronomyFormat: Could not update any history properties");
+                    return false;
                 }
             } catch (Exception ex) {
                 Logger.Error($"CanonAstronomyFormat: Exception in TryUpdateHistoryEntry: {ex.Message}");
+                return false;
             }
         }
 
