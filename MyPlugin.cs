@@ -168,6 +168,12 @@ namespace NINA.Plugin.CanonAstroImage {
                 var fitsPathToUse = _lastFitsPath;
                 _lastFitsPath = null;  // Clear for next image
 
+                // Capture the original Canon RAW path BEFORE any redirect.
+                // The FITS and CR3 filenames can differ (e.g. temperature token present in CR3
+                // but missing in FITS when metadata isn't available at BeforeImageSaved time),
+                // so we must use e.PathToImage while it still points to the CR3.
+                var originalCanonPath = e.PathToImage.LocalPath;
+
                 // Redirect image history to FITS path ONLY if auto-delete is enabled
                 // (no point redirecting if we're keeping the CR3 file)
                 if (this.AutoDeleteCanonRaw && !string.IsNullOrEmpty(fitsPathToUse)) {
@@ -182,9 +188,8 @@ namespace NINA.Plugin.CanonAstroImage {
                     return;
                 }
 
-                var savedFilePath = e.PathToImage.LocalPath;
-                var fileDirectory = Path.GetDirectoryName(savedFilePath);
-                var fileNameWithoutExt = Path.GetFileNameWithoutExtension(savedFilePath);
+                var fileDirectory = Path.GetDirectoryName(originalCanonPath);
+                var fileNameWithoutExt = Path.GetFileNameWithoutExtension(originalCanonPath);
 
                 DeleteIfExists(Path.Combine(fileDirectory, fileNameWithoutExt + ".cr3"));
                 DeleteIfExists(Path.Combine(fileDirectory, fileNameWithoutExt + ".cr2"));
@@ -319,7 +324,7 @@ namespace NINA.Plugin.CanonAstroImage {
             RaisePropertyChanged(nameof(PluginVersion));
         }
 
-        public string PluginVersion => "1.3.0.0";
+        public string PluginVersion => "1.4.0.0";
 
         private bool pluginEnabled;
         public bool PluginEnabled {
