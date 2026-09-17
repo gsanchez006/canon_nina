@@ -36,7 +36,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyFileVersion("1.6.1.0")]
 
 // Plugin metadata
-[assembly: AssemblyMetadata("MinimumApplicationVersion", "3.0.0.0")]
+[assembly: AssemblyMetadata("MinimumApplicationVersion", "3.2.0.0")]
 [assembly: AssemblyMetadata("License", "MIT")]
 [assembly: AssemblyMetadata("LicenseURL", "https://github.com/gsanchez006/canon_nina/blob/main/LICENSE")]
 // Logo shown by NINA at the top right of the plugin page and as the icon in the plugin list.

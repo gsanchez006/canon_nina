@@ -71,7 +71,7 @@ Both files contain the same image data. Header metadata in the converted file is
 
 ## Requirements
 
-- NINA 3.0.0 or later
+- NINA 3.2.0 or later
 - .NET 8.0 Windows Runtime
 - Canon camera connected through NINA's native Canon driver (Canon cameras connected through ASCOM are not converted)
 
