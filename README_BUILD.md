@@ -1,6 +1,6 @@
 # Build and Package Guide
 
-This directory includes automated build scripts to compile the Canon Astronomy Format plugin and create a ready-to-distribute `canon.zip` package.
+This directory includes automated build scripts to compile the Canon Astro Image plugin and create a ready-to-distribute `canon.zip` package.
 
 ## Quick Start
 
@@ -15,13 +15,9 @@ build.bat
 ```
 
 Both scripts will:
-1. ✓ Detect .NET SDK installation
-2. ✓ Clean previous builds
-3. ✓ Compile in Release configuration
-4. ✓ Create `Canon\` folder structure
-5. ✓ Package DLL into `canon.zip`
-6. ✓ Verify package contents
-7. ✓ Display installation instructions
+1. ✓ Compile in Release configuration
+2. ✓ Package the DLL into `canon.zip` under a `Canon\` folder
+3. ✓ Print the package size, SHA256 and installation instructions
 
 ## Output
 
@@ -30,7 +26,7 @@ After running a build script, you'll have:
 - **Folder structure inside ZIP:**
   ```
   Canon/
-  └── NINA.Plugin.CanonAstronomyFormat.dll
+  └── NINA.Plugin.CanonAstroImage.dll
   ```
 
 ## Installation (End Users)
@@ -43,10 +39,10 @@ Users receive `canon.zip` from GitHub releases:
    ```
    %LOCALAPPDATA%\NINA\Plugins\3.0.0\
    └── Canon/
-       └── NINA.Plugin.CanonAstronomyFormat.dll
+       └── NINA.Plugin.CanonAstroImage.dll
    ```
 4. Restart NINA
-5. Enable in Settings → Plugins → Canon Astronomy Format
+5. Enable in Settings → Plugins → Canon Astro Image
 
 ## Build Script Details
 
@@ -89,6 +85,17 @@ powershell -ExecutionPolicy Bypass -File build.ps1
 build.bat
 ```
 
+## Local development deploy
+
+A plain `dotnet build` does not touch your NINA installation. To copy the freshly built DLL into
+`%LOCALAPPDATA%\NINA\Plugins\3.0.0\Canon` after building, run:
+
+```powershell
+dotnet build NINA.Plugin.CanonAstroImage.csproj -c Release -p:DeployToNina=true
+```
+
+Restart NINA afterwards.
+
 ## .NET SDK Requirements
 
 Both scripts require .NET 8.0 SDK:
@@ -110,7 +117,7 @@ dotnet --version
 
 ### "Project file not found"
 - Ensure you're running the script from the plugin directory
-- Verify `NINA.Plugin.CanonAstronomyFormat.csproj` exists
+- Verify `NINA.Plugin.CanonAstroImage.csproj` exists
 
 ### "Build failed"
 - Check for compilation errors in output
@@ -150,7 +157,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
    1. Download canon.zip
    2. Extract to %LOCALAPPDATA%\NINA\Plugins\3.0.0\
    3. Restart NINA
-   4. Enable in Settings → Plugins → Canon Astronomy Format
+   4. Enable in Settings → Plugins → Canon Astro Image
 
    ## Checksum
    SHA256: <hash from script output>
@@ -174,12 +181,12 @@ jobs:
         with:
           dotnet-version: '8.0.x'
       - name: Build Plugin
-        run: .\NINA.Plugin.CanonAstronomyFormat\build.ps1
+        run: .\NINA.Plugin.CanonAstroImage\build.ps1
       - name: Upload Artifact
         uses: actions/upload-artifact@v3
         with:
           name: canon-plugin
-          path: NINA.Plugin.CanonAstronomyFormat/canon.zip
+          path: NINA.Plugin.CanonAstroImage/canon.zip
 ```
 
 ## Support
@@ -187,7 +194,7 @@ jobs:
 For issues with the build process:
 1. Check .NET SDK version: `dotnet --version`
 2. Clean and rebuild: Delete `bin/` and `obj/` directories
-3. Restore packages: `dotnet restore NINA.Plugin.CanonAstronomyFormat.csproj`
+3. Restore packages: `dotnet restore NINA.Plugin.CanonAstroImage.csproj`
 4. Review error output from build scripts
 
 For plugin support, see main [README.md](README.md)

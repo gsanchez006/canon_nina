@@ -4,18 +4,17 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="clr-namespace:NINA.Plugin.CanonAstroImage">
 
-    <!-- Canon Astro Image Plugin Options -->
-    <!-- This DataTemplate is displayed in NINA's Options > Plugins tab -->
-    <!-- The key MUST match the AssemblyTitle: Canon Astro Image_Options -->
+    <!-- Shown in NINA's Options > Plugins tab. The key MUST match the AssemblyTitle: "Canon Astro Image" + "_Options" -->
     <DataTemplate x:Key="Canon Astro Image_Options">
         <StackPanel Orientation="Vertical" Margin="10">
             <TextBlock
-                Text="Canon Astro Image Format Plugin"
+                Text="Canon Astro Image"
                 FontSize="14"
                 FontWeight="Bold"
+                Foreground="{DynamicResource PrimaryBrush}"
                 Margin="0,0,0,10" />
 
-            <!-- Plugin Enable/Disable Toggle -->
+            <!-- Plugin enable/disable -->
             <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
                 <CheckBox
                     x:Name="PluginEnabledToggle"
@@ -26,10 +25,11 @@
                     Text="Enable Plugin"
                     VerticalAlignment="Center"
                     TextWrapping="Wrap"
-                    FontWeight="Bold" />
+                    FontWeight="Bold"
+                    Foreground="{DynamicResource PrimaryBrush}" />
             </StackPanel>
 
-            <!-- Auto-Delete CR3/CR2 Files Toggle (grayed out when plugin is disabled) -->
+            <!-- Auto-delete (disabled when the plugin is disabled) -->
             <StackPanel
                 Orientation="Horizontal"
                 Margin="0,0,0,15"
@@ -42,50 +42,51 @@
                 <TextBlock
                     Text="Auto-Delete Canon RAW Files (CR3/CR2)"
                     VerticalAlignment="Center"
-                    TextWrapping="Wrap" />
+                    TextWrapping="Wrap"
+                    Foreground="{DynamicResource PrimaryBrush}" />
             </StackPanel>
 
             <!-- Description -->
             <TextBlock
-                Text="Enable the plugin to automatically convert Canon RAW images to astronomy formats (FITS, XISF, or TIFF). When enabled, the plugin will create astronomy format files alongside your Canon RAW files. Optionally, enable auto-delete to remove the RAW files after successful conversion."
-                Foreground="#666666"
+                Text="Converts each Canon RAW capture to the format selected under Options -> Imaging -> File Settings (FITS, XISF or TIFF). With auto-delete on, the RAW file is removed only after the converted file has been verified on disk; if conversion fails, the RAW is kept."
+                Foreground="{DynamicResource PrimaryBrush}"
+                Opacity="0.75"
                 FontSize="11"
                 TextWrapping="Wrap"
                 Margin="0,0,0,10" />
 
-            <!-- Warning about permanent deletion -->
+            <!-- Permanent-deletion warning -->
             <Border
-                Background="#FFFACD"
-                BorderBrush="#FFD700"
+                Background="{DynamicResource NotificationWarningBrush}"
+                BorderBrush="{DynamicResource NotificationWarningBrush}"
                 BorderThickness="1"
                 Padding="10"
                 Margin="0,0,0,10"
                 CornerRadius="3"
                 IsEnabled="{Binding PluginEnabled}">
                 <TextBlock
-                    Text="⚠ Warning: This action is permanent. Ensure you have backups if you need to preserve the original CR3/CR2 files."
-                    Foreground="#000000"
+                    Text="⚠ Deleting RAW files is permanent. Keep backups if you need the original CR3/CR2 files."
+                    Foreground="{DynamicResource NotificationWarningTextBrush}"
                     FontSize="11"
                     TextWrapping="Wrap" />
             </Border>
 
-<!-- Info -->
+            <!-- How it works. No fill: PrimaryBrush text is only guaranteed readable on the page background in every theme. -->
             <Border
-                Background="#E6F3FF"
-                BorderBrush="#0066CC"
+                BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1"
                 Padding="10"
                 CornerRadius="3">
                 <StackPanel Orientation="Vertical">
                     <TextBlock
-                        Text="ℹ How It Works:"
+                        Text="How it works"
                         FontWeight="Bold"
-                        Foreground="#0066CC"
+                        Foreground="{DynamicResource PrimaryBrush}"
                         FontSize="11"
                         Margin="0,0,0,5" />
                     <TextBlock
-                        Text="1. Enable this plugin&#10;2. Select the image format you want from Options -> Imaging -> File Settings&#10;3. Take an exposure with your Canon camera&#10;4. Plugin creates FITS/XISF/TIFF in your selected format&#10;5. Canon RAW file (CR3/CR2) is created automatically&#10;6. If auto-delete is enabled, CR3/CR2 is removed automatically&#10;7. Result: Only astronomy format files (or both formats if auto-delete is disabled)"
-                        Foreground="#000000"
+                        Text="1. Enable this plugin&#10;2. Choose FITS, XISF or TIFF under Options -> Imaging -> File Settings&#10;3. Take an exposure with your Canon camera&#10;4. The plugin writes the converted file; NINA writes the CR3/CR2&#10;5. With auto-delete on, the CR3/CR2 is removed once the converted file is verified"
+                        Foreground="{DynamicResource PrimaryBrush}"
                         FontSize="10"
                         TextWrapping="Wrap"
                         LineHeight="16" />

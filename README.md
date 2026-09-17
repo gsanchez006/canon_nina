@@ -8,7 +8,7 @@ A NINA plugin that enables Canon camera users to save images directly in astrono
 
 By default, NINA's Canon camera driver saves all images exclusively in Canon RAW format (.cr2 for older models, .cr3 for EOS R series). While RAW files preserve full sensor data, they require third-party software to convert to usable astronomy formats like FITS.
 
-**Canon Astronomy Format Plugin** solves this by actively intercepting the image save pipeline and invoking NINA's native image writers, allowing you to:
+**Canon Astro Image** solves this by actively intercepting the image save pipeline and invoking NINA's native image writers, allowing you to:
 
 - ✅ Save directly to **FITS** format with compression (RICE, GZIP, HCOMPRESS)
 - ✅ Save to **XISF** format with full XML metadata
@@ -22,13 +22,13 @@ The plugin uses an **active image writer pattern** with event-driven hooks:
 
 1. **BeforeImageSaved Event** - Intercepts the image before NINA's default CR3 save
 2. **Active Invocation** - Directly calls NINA's native image writers with the selected format
-3. **ImageSaved Event** - Optionally deletes CR3/CR2 files after successful save
+3. **ImageSaved Event** - Optionally deletes the CR3/CR2, but only after verifying the converted file exists on disk
 
 ### Key Technical Details
 - Uses `IImageSaveMediator` for pipeline integration
 - Calls `IImageData.SaveToDisk()` with `forceFileType: true` to override RAW default
 - Copies ALL compression settings from user's Image File Settings
-- Runs save operation asynchronously to avoid blocking main pipeline
+- Writes the converted file inside NINA's BeforeImageSaved hook so it exists before the RAW is finalized (see Known limitations)
 - Stores auto-delete preference in profile settings
 
 ## Installation
@@ -41,7 +41,7 @@ The plugin uses an **active image writer pattern** with event-driven hooks:
 ## Usage
 
 ### Enabling the Plugin
-1. Open NINA → Settings → Plugins → Canon Astronomy Format
+1. Open NINA → Settings → Plugins → Canon Astro Image
 2. Check "Enable Plugin"
 3. The plugin is now active and will convert images to your selected format
 
@@ -52,9 +52,9 @@ The plugin uses an **active image writer pattern** with event-driven hooks:
 4. Take exposures - plugin will automatically save in your selected format
 
 ### Auto-Delete CR3/CR2 Files
-1. Open NINA → Settings → Plugins → Canon Astronomy Format
+1. Open NINA → Settings → Plugins → Canon Astro Image
 2. Check "Auto-Delete Canon RAW Files (CR3/CR2)"
-3. Images will now automatically delete the RAW file after successful save
+3. The RAW file is deleted only after the plugin has verified the converted file exists on disk. If conversion fails, the RAW is kept and a warning is written to the NINA log.
 
 ⚠️ **Important Notes**:
 - Deleting RAW files is permanent. Ensure backups if you need the originals.
@@ -66,7 +66,7 @@ When using this plugin, you get:
 - **FITS file** (or XISF/TIFF) - Your astronomy-format image ✓
 - **CR3 file** (optional, auto-deletable) - Canon's native RAW backup ✓
 
-Both files contain identical image data and metadata.
+Both files contain the same image data. Header metadata in the converted file is taken from NINA's metadata at the time of conversion (see Known limitations).
 
 ## Requirements
 
@@ -89,22 +89,11 @@ Both files contain identical image data and metadata.
 ### TIFF
 - Compression: None, LZW, ZIP, JPEG
 
-## Code Quality
+## Known limitations
 
-### Strengths
-- Clear, well-documented architecture with extensive inline comments
-- Proper error handling with try-catch blocks throughout
-- Comprehensive logging for debugging
-- Lazy-loaded settings with profile persistence
-- Proper event subscription/unsubscription cleanup
-- Asynchronous image processing to avoid blocking
-- Plugin enable/disable toggle for flexibility
-
-### Implementation Notes
-- `MyPlugin.cs` - Core plugin implementation with plugin enable/disable toggle
-- `Options.xaml/xaml.cs` - User settings UI with warnings about image history
-- `Properties/AssemblyInfo.cs` - Assembly metadata
-- Clean SDK-style project file with minimal dependencies
+- The converted file is written synchronously inside NINA's save pipeline, so each exposure's save takes the extra write time. NINA does not pass a cancellation token to this hook, so an aborted sequence cannot interrupt a conversion already in progress.
+- To make image history show the converted file instead of the deleted RAW, the plugin reorders NINA's internal `ImageSaved` handlers using reflection. If a NINA update changes those internals the plugin falls back to a normal subscription, logs `ImageSaved handler ordering = fallback`, and image history will show the RAW path. Conversion and deletion still work.
+- Plugin settings (enabled, auto-delete) are stored per NINA profile.
 
 ## License
 
@@ -118,6 +107,11 @@ For issues, feature requests, or questions:
 3. Include NINA logs if reporting bugs
 
 ## Version History
+
+### 1.6.0.0
+- **Fixed (data loss)**: RAW is never deleted unless the converted file verifiably exists on disk
+- **Fixed**: settings follow profile switches; converted-file path tracked per exposure; delete uses the exact reported path
+- Options page uses NINA theme colours; post-build deploy is opt-in; docs corrected
 
 ### 1.5.0.0
 - Added Homepage and Changelog links to the plugin's info page in NINA

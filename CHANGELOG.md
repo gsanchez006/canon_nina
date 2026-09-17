@@ -2,6 +2,17 @@
 
 All notable changes to the Canon Astro Image plugin are documented here.
 
+## 1.6.0.0
+- **Fixed (data loss)**: Auto-delete no longer removes the Canon RAW unless the converted FITS/XISF/TIFF file verifiably exists on disk. Previously a failed conversion deleted the only copy of the frame.
+- **Fixed**: Plugin settings now follow NINA profile switches instead of being cached from the first profile loaded.
+- **Fixed**: The converted-file path is tracked per exposure instead of in a single shared field, so overlapping saves cannot mix up image history.
+- **Fixed**: Auto-delete removes exactly the file NINA reported instead of reconstructing sibling `.cr2`/`.cr3` names.
+- **Changed**: Options page uses NINA theme colours (readable in light and dark themes) and describes the verified-before-delete behaviour.
+- **Changed**: The post-build copy into `%LOCALAPPDATA%\NINA` is now opt-in (`dotnet build -p:DeployToNina=true`).
+- **Changed**: Log lines are prefixed `CanonAstroImage:` (was `CanonAstronomyFormat:`).
+- Removed the unused `PluginVersion` property; documentation corrected.
+- Verified: image metadata is complete at conversion time; converted-file headers match NINA's final metadata. (Tested on NINA 3.2.0.9001 with a Canon EOS R100, which reports no sensor temperature, so temperature timing specifically could not be exercised.)
+
 ## 1.5.0.0
 - Added Homepage and Changelog links to the plugin's info page in NINA
 
