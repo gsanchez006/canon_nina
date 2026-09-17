@@ -33,10 +33,20 @@ If the RAW bytes cannot be detached (for example after a NINA update changes its
 
 ## Installation
 
-1. Download the latest release DLL
-2. Copy to: `%LOCALAPPDATA%\NINA\Plugins\3.0.0\Canon\`
-3. Restart NINA
-4. Enable the plugin in NINA's Plugin Options
+Requires NINA 3.2.0 or later.
+
+1. Download `canon.zip` from the [latest release](https://github.com/gsanchez006/canon_nina/releases/latest)
+2. Close NINA
+3. Extract `canon.zip` into `%LOCALAPPDATA%\NINA\Plugins\3.0.0\` (paste that path into File Explorer's address bar to open it). The zip already contains the `Canon` folder, so you should end up with:
+   ```
+   %LOCALAPPDATA%\NINA\Plugins\3.0.0\Canon\NINA.Plugin.CanonAstroImage.dll
+   ```
+   Windows' "Extract All" suggests a new `canon` folder by default - remove that part of the path, or the plugin ends up one folder too deep and NINA won't load it.
+4. Start NINA and check that **Canon Astro Image** appears in NINA's list of installed plugins
+5. Enable the plugin (see Usage below)
+
+### Updating
+Close NINA, extract the new `canon.zip` to the same place and overwrite the existing DLL, then start NINA. Your settings are kept, because they are stored in your NINA profile. NINA must be closed first: while it runs, the DLL is locked and can't be replaced.
 
 ## Usage
 
