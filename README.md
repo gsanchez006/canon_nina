@@ -108,7 +108,7 @@ Both files contain identical image data and metadata.
 
 ## License
 
-GNU GENERAL PUBLIC LICENSE 3.0 - See LICENSE for details
+MIT License - See LICENSE for details
 
 ## Support
 

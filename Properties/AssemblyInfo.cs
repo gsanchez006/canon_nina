@@ -37,6 +37,8 @@ using System.Runtime.InteropServices;
 
 // Plugin metadata
 [assembly: AssemblyMetadata("MinimumApplicationVersion", "3.0.0.0")]
+[assembly: AssemblyMetadata("License", "MIT")]
+[assembly: AssemblyMetadata("LicenseURL", "https://github.com/gsanchez006/canon_nina/blob/main/LICENSE")]
 // Logo shown by NINA at the top right of the plugin page and as the icon in the plugin list.
 // NINA loads it from this URL, so it must be reachable: the PNG lives in this repo on GitHub.
 [assembly: AssemblyMetadata("FeaturedImageURL", "https://raw.githubusercontent.com/gsanchez006/canon_nina/main/Assets/logo-512.png")]
