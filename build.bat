@@ -1,67 +1,42 @@
 @echo off
-setlocal enabledelayedexpansion
+setlocal
 
 set "ProjectFile=NINA.Plugin.CanonAstroImage.csproj"
 set "BuildConfig=Release"
-set "BuildDir=bin\%BuildConfig%\net8.0-windows"
-set "DllFile=%BuildDir%\NINA.Plugin.CanonAstroImage.dll"
+set "DllFile=bin\%BuildConfig%\net8.0-windows\NINA.Plugin.CanonAstroImage.dll"
 set "OutputZip=canon.zip"
-set "TempDir=%TEMP%\canon_build_%RANDOM%"
 
 echo.
-echo ============================================================================
-echo  Canon Astro Image Format Plugin - Build and Package
-echo ============================================================================
+echo === Canon Astro Image plugin - build and package ===
 echo.
 
 if not exist "%ProjectFile%" (
-    echo ERROR: Project file not found: %ProjectFile%
+    echo ERROR: Project file not found: %ProjectFile% ^(run this script from the repository root^)
     exit /b 1
 )
 
-echo [STEP 1] Building project in %BuildConfig% configuration...
+echo [1/3] Building (%BuildConfig%)...
 dotnet build "%ProjectFile%" -c "%BuildConfig%" -v minimal
 if errorlevel 1 (
     echo Build failed!
     exit /b 1
 )
-echo Build completed successfully
-echo.
-
 if not exist "%DllFile%" (
-    echo ERROR: DLL file not found: %DllFile%
+    echo ERROR: DLL not found after build: %DllFile%
     exit /b 1
 )
 
-echo [STEP 2] Preparing package...
-if exist "%TempDir%" rmdir /s /q "%TempDir%"
-mkdir "%TempDir%\Canon"
-copy "%DllFile%" "%TempDir%\Canon\"
-echo DLL copied to package
-echo.
-
-echo [STEP 3] Creating canon.zip...
+echo [2/3] Creating %OutputZip%...
 if exist "%OutputZip%" del "%OutputZip%"
-powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $zip = [System.IO.Compression.ZipFile]::Open('%CD%\%OutputZip%', 1); [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, '%DllFile%', 'Canon/NINA.Plugin.CanonAstroImage.dll'); $zip.Dispose();"
-echo ZIP created successfully
-echo.
+powershell -NoProfile -Command "Add-Type -AssemblyName System.IO.Compression.FileSystem; $zip = [System.IO.Compression.ZipFile]::Open('%CD%\%OutputZip%', 'Create'); try { [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, '%CD%\%DllFile%', 'Canon/NINA.Plugin.CanonAstroImage.dll') | Out-Null } finally { $zip.Dispose() }"
+if errorlevel 1 (
+    echo ZIP creation failed!
+    exit /b 1
+)
 
-echo [STEP 4] Verifying package...
+echo [3/3] Package summary
 dir "%OutputZip%"
-echo.
-
-echo [STEP 5] Cleaning up...
-rmdir /s /q "%TempDir%"
-echo Temporary files removed
-echo.
-
-echo ============================================================================
-echo BUILD COMPLETE
-echo ============================================================================
-echo.
-echo Package: %OutputZip%
-echo Installation: Extract to %%LOCALAPPDATA%%\NINA\Plugins\3.0.0\
-echo.
-
 certutil -hashfile "%OutputZip%" SHA256
+echo.
+echo Install: extract %OutputZip% into %%LOCALAPPDATA%%\NINA\Plugins\3.0.0\ and restart NINA
 echo.
