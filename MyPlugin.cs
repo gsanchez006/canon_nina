@@ -138,7 +138,7 @@ namespace NINA.Plugin.CanonAstroImage {
         }
 
         // ------------------------------------------------------------------
-        // Pipeline: BeforeImageSaved - write the converted file
+        // Pipeline: BeforeImageSaved - direct save, or write the converted file
         // ------------------------------------------------------------------
 
         private Task ImageSaveMediator_BeforeImageSaved(object sender, BeforeImageSavedEventArgs e) {

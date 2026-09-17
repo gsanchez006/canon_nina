@@ -48,7 +48,7 @@
 
             <!-- Description -->
             <TextBlock
-                Text="Converts each Canon RAW capture to the format selected under Options -> Imaging -> File Settings (FITS, XISF or TIFF). With auto-delete on, the RAW file is removed only after the converted file has been verified on disk; if conversion fails, the RAW is kept."
+                Text="Saves each Canon capture in the format selected under Options -> Imaging -> File Settings (FITS, XISF or TIFF). With auto-delete off you get both the converted file and the CR3/CR2. With auto-delete on, NINA saves only the selected format and no RAW file is written."
                 Foreground="{DynamicResource PrimaryBrush}"
                 Opacity="0.75"
                 FontSize="11"
@@ -65,7 +65,7 @@
                 CornerRadius="3"
                 IsEnabled="{Binding PluginEnabled}">
                 <TextBlock
-                    Text="⚠ Deleting RAW files is permanent. Keep backups if you need the original CR3/CR2 files."
+                    Text="⚠ With auto-delete on, no CR3/CR2 file is kept. Leave it off if you need the original Canon RAW files."
                     Foreground="{DynamicResource NotificationWarningTextBrush}"
                     FontSize="11"
                     TextWrapping="Wrap" />
@@ -85,7 +85,7 @@
                         FontSize="11"
                         Margin="0,0,0,5" />
                     <TextBlock
-                        Text="1. Enable this plugin&#10;2. Choose FITS, XISF or TIFF under Options -> Imaging -> File Settings&#10;3. Take an exposure with your Canon camera&#10;4. The plugin writes the converted file; NINA writes the CR3/CR2&#10;5. With auto-delete on, the CR3/CR2 is removed once the converted file is verified"
+                        Text="1. Enable this plugin&#10;2. Choose FITS, XISF or TIFF under Options -> Imaging -> File Settings&#10;3. Take an exposure with your Canon camera&#10;4. Auto-delete off: the plugin writes the converted file and NINA writes the CR3/CR2&#10;5. Auto-delete on: NINA writes only the converted file - one write per frame, nothing to delete"
                         Foreground="{DynamicResource PrimaryBrush}"
                         FontSize="10"
                         TextWrapping="Wrap"
