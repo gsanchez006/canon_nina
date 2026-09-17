@@ -1,5 +1,6 @@
 ﻿using NINA.Core.Enum;
 using NINA.Core.Utility;
+using NINA.Equipment.Interfaces.Mediator;
 using NINA.Image.FileFormat;
 using NINA.Image.ImageData;
 using NINA.Image.Interfaces;
@@ -24,8 +25,9 @@ namespace NINA.Plugin.CanonAstroImage {
     /// Canon Astro Image plugin - creates FITS/XISF/TIFF files from Canon RAW captures.
     ///
     /// Pipeline hooks (IImageSaveMediator):
-    ///  1. BeforeImageSaved - invoke NINA's native writer for the user's selected format and remember
-    ///                        the produced path, keyed by the exposure start time.
+    ///  1. BeforeImageSaved - if the connected camera uses NINA's native Canon driver, invoke NINA's
+    ///                        writer for the user's selected format and remember the produced path,
+    ///                        keyed by the exposure start time. Other cameras are left alone.
     ///  2. ImageSaved       - NINA has written the CR3/CR2. If auto-delete is on AND the converted file
     ///                        verifiably exists, point image history at it and delete the RAW.
     ///                        A RAW is never deleted without a verified replacement.
@@ -45,8 +47,13 @@ namespace NINA.Plugin.CanonAstroImage {
         // happening the map is cleared rather than growing forever.
         private const int MaxTrackedImages = 64;
 
+        // IDevice.Category reported by NINA's native Canon (EDSDK) camera driver. Other drivers report
+        // their own vendor ("ASCOM", "ZWOptical", "QHYCCD", "Nikon", "N.I.N.A." for the simulator, ...).
+        private const string CanonDriverCategory = "Canon";
+
         private readonly IProfileService profileService;
         private readonly IImageSaveMediator imageSaveMediator;
+        private readonly ICameraMediator cameraMediator;
         private readonly IPluginOptionsAccessor pluginSettings;
 
         // Converted-file path per in-flight image, keyed by MetaData.Image.ExposureStart.Ticks.
@@ -57,7 +64,7 @@ namespace NINA.Plugin.CanonAstroImage {
         private bool imageSavedSubscribed;
 
         [ImportingConstructor]
-        public CanonAstroImage(IProfileService profileService, IImageSaveMediator imageSaveMediator) {
+        public CanonAstroImage(IProfileService profileService, IImageSaveMediator imageSaveMediator, ICameraMediator cameraMediator) {
             try {
                 if (Settings.Default.UpdateSettings) {
                     Settings.Default.Upgrade();
@@ -67,6 +74,7 @@ namespace NINA.Plugin.CanonAstroImage {
 
                 this.profileService = profileService;
                 this.imageSaveMediator = imageSaveMediator;
+                this.cameraMediator = cameraMediator;
 
                 // Reads and writes always go to the currently active profile, so profile switches are honoured.
                 this.pluginSettings = new PluginOptionsAccessor(profileService, Guid.Parse(this.Identifier));
@@ -144,6 +152,14 @@ namespace NINA.Plugin.CanonAstroImage {
                 }
 
                 if (imageData?.MetaData == null) {
+                    return;
+                }
+
+                // Only Canon captures need converting: other cameras are already saved by NINA in the
+                // selected format, so converting them would just write a second copy of the frame.
+                var driverCategory = ConnectedCameraCategory();
+                if (!string.Equals(driverCategory, CanonDriverCategory, StringComparison.Ordinal)) {
+                    Logger.Debug($"{LogPrefix}: camera driver is '{driverCategory ?? "none"}', not Canon - skipping conversion");
                     return;
                 }
 
@@ -285,6 +301,16 @@ namespace NINA.Plugin.CanonAstroImage {
         // ------------------------------------------------------------------
         // Helpers
         // ------------------------------------------------------------------
+
+        /// <summary>Category of the connected camera's driver, or null if none is connected or it cannot be read.</summary>
+        private string ConnectedCameraCategory() {
+            try {
+                return cameraMediator.GetDevice()?.Category;
+            } catch (Exception ex) {
+                Logger.Warning($"{LogPrefix}: could not read the connected camera driver ({ex.Message})");
+                return null;
+            }
+        }
 
         /// <summary>Key that identifies one exposure in both BeforeImageSaved and ImageSaved. 0 = unknown.</summary>
         private static long CorrelationKey(ImageMetaData metaData) {

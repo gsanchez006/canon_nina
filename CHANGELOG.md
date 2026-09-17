@@ -2,6 +2,9 @@
 
 All notable changes to the Canon Astro Image plugin are documented here.
 
+## 1.6.1.0
+- **Fixed**: With a non-Canon camera connected (dedicated astro camera, ASCOM camera, NINA simulator) the plugin wrote an extra copy of every frame alongside NINA's own file, doubling save time. The plugin now checks the connected camera's driver and only converts frames from NINA's native Canon driver.
+
 ## 1.6.0.0
 - **Fixed (data loss)**: Auto-delete no longer removes the Canon RAW unless the converted FITS/XISF/TIFF file verifiably exists on disk. Previously a failed conversion deleted the only copy of the frame.
 - **Fixed**: Plugin settings now follow NINA profile switches instead of being cached from the first profile loaded.

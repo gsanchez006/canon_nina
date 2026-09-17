@@ -20,7 +20,7 @@ By default, NINA's Canon camera driver saves all images exclusively in Canon RAW
 ### Architecture
 The plugin uses an **active image writer pattern** with event-driven hooks:
 
-1. **BeforeImageSaved Event** - Intercepts the image before NINA's default CR3 save
+1. **BeforeImageSaved Event** - Intercepts the image before NINA's default CR3 save (only when the connected camera uses NINA's native Canon driver)
 2. **Active Invocation** - Directly calls NINA's native image writers with the selected format
 3. **ImageSaved Event** - Optionally deletes the CR3/CR2, but only after verifying the converted file exists on disk
 
@@ -30,6 +30,7 @@ The plugin uses an **active image writer pattern** with event-driven hooks:
 - Copies ALL compression settings from user's Image File Settings
 - Writes the converted file inside NINA's BeforeImageSaved hook so it exists before the RAW is finalized (see Known limitations)
 - Stores auto-delete preference in profile settings
+- Checks the connected camera's driver on every frame: cameras on any other driver (dedicated astro cameras, ASCOM, the NINA simulator) are ignored, so the plugin can stay enabled when you switch cameras
 
 ## Installation
 
@@ -72,7 +73,7 @@ Both files contain the same image data. Header metadata in the converted file is
 
 - NINA 3.0.0 or later
 - .NET 8.0 Windows Runtime
-- Canon camera compatible with NINA
+- Canon camera connected through NINA's native Canon driver (Canon cameras connected through ASCOM are not converted)
 
 ## Supported Formats
 
@@ -107,6 +108,9 @@ For issues, feature requests, or questions:
 3. Include NINA logs if reporting bugs
 
 ## Version History
+
+### 1.6.1.0
+- Frames from non-Canon cameras (dedicated astro cameras, ASCOM, simulator) are no longer converted a second time; the plugin only acts on NINA's native Canon driver
 
 ### 1.6.0.0
 - **Fixed (data loss)**: RAW is never deleted unless the converted file verifiably exists on disk
