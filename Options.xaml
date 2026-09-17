@@ -71,9 +71,8 @@
                     TextWrapping="Wrap" />
             </Border>
 
-            <!-- How it works -->
+            <!-- How it works. No fill: PrimaryBrush text is only guaranteed readable on the page background in every theme. -->
             <Border
-                Background="{DynamicResource SecondaryBackgroundBrush}"
                 BorderBrush="{DynamicResource BorderBrush}"
                 BorderThickness="1"
                 Padding="10"
