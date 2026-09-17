@@ -11,6 +11,7 @@ All notable changes to the Canon Astro Image plugin are documented here.
 - **Changed**: The post-build copy into `%LOCALAPPDATA%\NINA` is now opt-in (`dotnet build -p:DeployToNina=true`).
 - **Changed**: Log lines are prefixed `CanonAstroImage:` (was `CanonAstronomyFormat:`).
 - Removed the unused `PluginVersion` property; documentation corrected.
+- Verified: image metadata is complete at conversion time; converted-file headers match NINA's final metadata. (Tested on NINA 3.2.0.9001 with a Canon EOS R100, which reports no sensor temperature, so temperature timing specifically could not be exercised.)
 
 ## 1.5.0.0
 - Added Homepage and Changelog links to the plugin's info page in NINA
