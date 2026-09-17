@@ -3,11 +3,13 @@
 All notable changes to the Canon Astro Image plugin are documented here.
 
 ## 1.7.0.0
-- **Changed**: With auto-delete on, Canon frames are now saved directly by NINA in the selected format (FITS/XISF/TIFF). The plugin detaches the camera's RAW bytes before NINA saves, so each frame is written once instead of writing the converted file, writing the CR3/CR2 and then deleting it. The file name, headers and image history come from NINA's own save.
-- **Changed**: If the RAW bytes cannot be detached (for example after a NINA update), the plugin logs a warning and falls back to the previous convert-then-delete behaviour, which still never deletes a RAW without a verified replacement.
-- **Note**: In direct-save mode the selected format is the only file written, so a writer failure for that file leaves no CR3/CR2 behind. Leave auto-delete off to keep the RAW.
+- **Changed**: The "Auto-Delete Canon RAW Files" toggle is replaced by "Also save Canon RAW file (CR3/CR2)". Existing settings carry over: auto-delete off (the default) becomes Canon RAW saving on, and vice versa.
+- **Changed**: With Canon RAW saving off, Canon frames are now saved directly by NINA in the selected format (FITS/XISF/TIFF). The plugin detaches the camera's RAW bytes before NINA saves, so each frame is written once instead of writing the converted file, writing the CR3/CR2 and then deleting it. The file name, headers and image history come from NINA's own save.
+- **Changed**: If the RAW bytes cannot be detached (for example after a NINA update), the plugin logs a warning and falls back to writing both files and removing the CR3/CR2 afterwards, which still never removes a RAW without a verified replacement.
+- **Note**: In direct-save mode the selected format is the only file written, so a writer failure for that file leaves no CR3/CR2 behind. Turn on "Also save Canon RAW file" to keep the RAW.
+- **Changed**: Options page wording and tooltips describe what gets saved instead of what gets deleted.
 - **Changed**: Built against NINA.Plugin 3.2.0.9001 (was 3.0.0.2017-beta); minimum NINA version raised to 3.2.0.
-- Auto-delete off (keep both files) is unchanged.
+- Canon RAW saving on (both files) works as before.
 
 ## 1.6.1.0
 - **Fixed**: With a non-Canon camera connected (dedicated astro camera, ASCOM camera, NINA simulator) the plugin wrote an extra copy of every frame alongside NINA's own file, doubling save time. The plugin now checks the connected camera's driver and only converts frames from NINA's native Canon driver.

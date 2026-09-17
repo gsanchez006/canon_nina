@@ -22,24 +22,24 @@ using Settings = NINA.Plugin.CanonAstroImage.Properties.Settings;
 
 namespace NINA.Plugin.CanonAstroImage {
     /// <summary>
-    /// Canon Astro Image plugin - creates FITS/XISF/TIFF files from Canon RAW captures.
+    /// Canon Astro Image plugin - saves Canon captures as FITS/XISF/TIFF, optionally alongside the Canon RAW file.
     ///
     /// NINA writes a Canon frame as CR3/CR2 only because the frame still carries the camera's original
     /// RAW bytes (IImageArray.RAWData); without them NINA writes the format selected in Image File Settings.
     /// Only frames from NINA's native Canon driver are touched; other cameras are left alone.
     ///
-    /// Auto-delete ON  - direct save: in BeforeImageSaved the RAW bytes are detached from the frame, so NINA's
-    ///                   own save writes FITS/XISF/TIFF in a single write with its final file name, and image
-    ///                   history shows it natively. No RAW is written, so nothing is deleted.
-    ///                   If the bytes cannot be detached (NINA internals changed), fall back to the mode below
-    ///                   plus delete.
-    /// Auto-delete OFF - keep both: in BeforeImageSaved invoke NINA's writer for the selected format and remember
-    ///                   the produced path, keyed by exposure start time; NINA then writes the CR3/CR2 as usual.
+    /// "Also save Canon RAW" OFF - direct save: in BeforeImageSaved the RAW bytes are detached from the frame,
+    ///                   so NINA's own save writes FITS/XISF/TIFF in a single write with its final file name,
+    ///                   and image history shows it natively. No RAW file is written.
+    ///                   If the bytes cannot be detached (NINA internals changed), use the fallback below.
+    /// "Also save Canon RAW" ON  - both files: in BeforeImageSaved invoke NINA's writer for the selected format and
+    ///                   remember the produced path, keyed by exposure start time; NINA then writes the CR3/CR2.
     ///
-    /// Fallback delete (ImageSaved): only when a converted file was produced for this exposure and verifiably
-    /// exists, point image history at it and delete the RAW. A RAW is never deleted without a verified
-    /// replacement. For this path the ImageSaved handler is moved to the front of the invocation list (via
-    /// reflection, with a plain-subscription fallback) so the history redirect is seen by NINA's ImageHistoryVM.
+    /// Fallback (RAW saving off but direct save unavailable): write both files as above, then in ImageSaved remove
+    /// the CR3/CR2 NINA wrote - only when the converted file for this exposure verifiably exists, and after pointing
+    /// image history at it. A RAW is never removed without a verified replacement. For this path the ImageSaved
+    /// handler is moved to the front of the invocation list (via reflection, with a plain-subscription fallback)
+    /// so the history redirect is seen by NINA's ImageHistoryVM.
     /// </summary>
     [Export(typeof(IPluginManifest))]
     public class CanonAstroImage : PluginBase, INotifyPropertyChanged {
@@ -47,6 +47,8 @@ namespace NINA.Plugin.CanonAstroImage {
 
         // Profile-setting keys. Must stay unchanged so existing user profiles keep their values.
         private const string PluginEnabledKey = "PluginEnabled";
+        // Stores the inverse of SaveCanonRaw. The name dates from the old "auto-delete" toggle and is kept so
+        // existing profiles carry over: auto-delete off (the default) = also save Canon RAW on.
         private const string AutoDeleteCanonRawKey = "AutoDeleteCanonRaw";
 
         // Safety valve for the per-image map: entries are removed in ImageSaved; if that ever stops
@@ -121,11 +123,12 @@ namespace NINA.Plugin.CanonAstroImage {
             }
         }
 
-        public bool AutoDeleteCanonRaw {
-            get => pluginSettings.GetValueBoolean(AutoDeleteCanonRawKey, false);
+        /// <summary>Also write Canon's original CR3/CR2 next to the FITS/XISF/TIFF file.</summary>
+        public bool SaveCanonRaw {
+            get => !pluginSettings.GetValueBoolean(AutoDeleteCanonRawKey, false);
             set {
-                pluginSettings.SetValueBoolean(AutoDeleteCanonRawKey, value);
-                Logger.Info($"{LogPrefix}: auto-delete Canon RAW = {value}");
+                pluginSettings.SetValueBoolean(AutoDeleteCanonRawKey, !value);
+                Logger.Info($"{LogPrefix}: also save Canon RAW = {value}");
                 RaisePropertyChanged();
             }
         }
@@ -134,7 +137,7 @@ namespace NINA.Plugin.CanonAstroImage {
             Logger.Debug($"{LogPrefix}: active profile changed");
             // The values are read from the active profile on every access; only the UI needs a nudge.
             RaisePropertyChanged(nameof(PluginEnabled));
-            RaisePropertyChanged(nameof(AutoDeleteCanonRaw));
+            RaisePropertyChanged(nameof(SaveCanonRaw));
         }
 
         // ------------------------------------------------------------------
@@ -178,7 +181,7 @@ namespace NINA.Plugin.CanonAstroImage {
 
                 var cameraName = imageData.MetaData.Camera?.Name ?? "Unknown";
 
-                if (AutoDeleteCanonRaw) {
+                if (!SaveCanonRaw) {
                     if (imageData.Data?.RAWData == null) {
                         Logger.Debug($"{LogPrefix}: frame carries no RAW data, NINA saves it as {userFileType} itself");
                         return;
@@ -188,7 +191,7 @@ namespace NINA.Plugin.CanonAstroImage {
                         LogMetadataSnapshot(stage, imageData.MetaData);
                         return;
                     }
-                    Logger.Warning($"{LogPrefix}: direct save unavailable, falling back to convert-then-delete for this frame");
+                    Logger.Warning($"{LogPrefix}: direct save unavailable, falling back to writing both files and removing the RAW afterwards");
                 }
 
                 var key = CorrelationKey(imageData.MetaData);
@@ -243,7 +246,7 @@ namespace NINA.Plugin.CanonAstroImage {
         }
 
         // ------------------------------------------------------------------
-        // Pipeline: ImageSaved - redirect history and delete the RAW (only with a verified replacement)
+        // Pipeline: ImageSaved - fallback only: redirect history and remove the RAW (only with a verified replacement)
         // ------------------------------------------------------------------
 
         private void ImageSaveMediator_ImageSaved(object sender, ImageSavedEventArgs e) {
@@ -266,13 +269,14 @@ namespace NINA.Plugin.CanonAstroImage {
 
                 LogMetadataSnapshot("ImageSaved", e.MetaData);
 
-                if (!AutoDeleteCanonRaw) {
-                    Logger.Debug($"{LogPrefix}: auto-delete off, keeping Canon RAW");
+                if (SaveCanonRaw) {
+                    Logger.Debug($"{LogPrefix}: also save Canon RAW is on, keeping it");
                     return;
                 }
 
-                // Everything below runs only when the user asked for the RAW to be deleted.
-                // Every failed check keeps the RAW: a RAW is never deleted without a verified replacement.
+                // RAW saving is off. With direct save NINA already wrote only the selected format, so the checks
+                // below simply find no RAW. They matter for the fallback, where NINA wrote a CR3/CR2 that should go.
+                // Every failed check keeps the RAW: a RAW is never removed without a verified replacement.
 
                 if (e.PathToImage == null || !e.PathToImage.IsFile) {
                     Logger.Warning($"{LogPrefix}: ImageSaved has no local file path, keeping Canon RAW");
@@ -281,12 +285,12 @@ namespace NINA.Plugin.CanonAstroImage {
                 var rawPath = e.PathToImage.LocalPath;
 
                 if (!IsCanonRawExtension(Path.GetExtension(rawPath))) {
-                    Logger.Debug($"{LogPrefix}: saved file '{rawPath}' is not a Canon RAW, nothing to delete");
+                    Logger.Debug($"{LogPrefix}: NINA saved '{rawPath}', no Canon RAW written");
                     return;
                 }
 
                 if (string.IsNullOrEmpty(producedPath)) {
-                    Logger.Warning($"{LogPrefix}: auto-delete is on but no converted file was produced for '{rawPath}', keeping Canon RAW");
+                    Logger.Warning($"{LogPrefix}: Canon RAW saving is off but no converted file was produced for '{rawPath}', keeping Canon RAW");
                     return;
                 }
 
@@ -296,7 +300,7 @@ namespace NINA.Plugin.CanonAstroImage {
                 }
 
                 if (SamePath(producedPath, rawPath)) {
-                    Logger.Error($"{LogPrefix}: converted path equals the RAW path ('{rawPath}'), refusing to delete");
+                    Logger.Error($"{LogPrefix}: converted path equals the RAW path ('{rawPath}'), refusing to remove it");
                     return;
                 }
 
@@ -312,7 +316,7 @@ namespace NINA.Plugin.CanonAstroImage {
                 e.PathToImage = producedUri;
                 Logger.Info($"{LogPrefix}: image history redirected to {producedPath}");
 
-                DeleteIfExists(rawPath);
+                RemoveRawIfExists(rawPath);
             } catch (Exception ex) {
                 Logger.Error($"{LogPrefix}: ImageSaved handler failed", ex);
             }
@@ -370,19 +374,19 @@ namespace NINA.Plugin.CanonAstroImage {
             try {
                 return string.Equals(Path.GetFullPath(a), Path.GetFullPath(b), StringComparison.OrdinalIgnoreCase);
             } catch {
-                return true; // cannot normalise: treat as the same path so the caller refuses to delete
+                return true; // cannot normalise: treat as the same path so the caller refuses to remove it
             }
         }
 
-        private static void DeleteIfExists(string path) {
+        private static void RemoveRawIfExists(string path) {
             if (!File.Exists(path)) {
                 return;
             }
             try {
                 File.Delete(path);
-                Logger.Info($"{LogPrefix}: auto-deleted {path}");
+                Logger.Info($"{LogPrefix}: fallback removed Canon RAW {path}");
             } catch (Exception ex) {
-                Logger.Error($"{LogPrefix}: failed to delete {path}", ex);
+                Logger.Error($"{LogPrefix}: fallback failed to remove Canon RAW {path}", ex);
             }
         }
 
@@ -461,7 +465,7 @@ namespace NINA.Plugin.CanonAstroImage {
 
         private void SubscribeImageSavedFallback(string reason) {
             Logger.Warning($"{LogPrefix}: ImageSaved handler ordering = fallback ({reason}). " +
-                           "Image history may show the deleted RAW path when auto-delete is on. This usually means the NINA version changed.");
+                           "If direct save is also unavailable, image history may show the removed RAW path. This usually means the NINA version changed.");
             imageSaveMediator.ImageSaved += ImageSaveMediator_ImageSaved;
             imageSavedSubscribed = true;
         }
