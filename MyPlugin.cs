@@ -24,16 +24,22 @@ namespace NINA.Plugin.CanonAstroImage {
     /// <summary>
     /// Canon Astro Image plugin - creates FITS/XISF/TIFF files from Canon RAW captures.
     ///
-    /// Pipeline hooks (IImageSaveMediator):
-    ///  1. BeforeImageSaved - if the connected camera uses NINA's native Canon driver, invoke NINA's
-    ///                        writer for the user's selected format and remember the produced path,
-    ///                        keyed by the exposure start time. Other cameras are left alone.
-    ///  2. ImageSaved       - NINA has written the CR3/CR2. If auto-delete is on AND the converted file
-    ///                        verifiably exists, point image history at it and delete the RAW.
-    ///                        A RAW is never deleted without a verified replacement.
+    /// NINA writes a Canon frame as CR3/CR2 only because the frame still carries the camera's original
+    /// RAW bytes (IImageArray.RAWData); without them NINA writes the format selected in Image File Settings.
+    /// Only frames from NINA's native Canon driver are touched; other cameras are left alone.
     ///
-    /// The ImageSaved handler is moved to the front of the invocation list (via reflection, with a
-    /// plain-subscription fallback) so the history redirect is seen by NINA's ImageHistoryVM.
+    /// Auto-delete ON  - direct save: in BeforeImageSaved the RAW bytes are detached from the frame, so NINA's
+    ///                   own save writes FITS/XISF/TIFF in a single write with its final file name, and image
+    ///                   history shows it natively. No RAW is written, so nothing is deleted.
+    ///                   If the bytes cannot be detached (NINA internals changed), fall back to the mode below
+    ///                   plus delete.
+    /// Auto-delete OFF - keep both: in BeforeImageSaved invoke NINA's writer for the selected format and remember
+    ///                   the produced path, keyed by exposure start time; NINA then writes the CR3/CR2 as usual.
+    ///
+    /// Fallback delete (ImageSaved): only when a converted file was produced for this exposure and verifiably
+    /// exists, point image history at it and delete the RAW. A RAW is never deleted without a verified
+    /// replacement. For this path the ImageSaved handler is moved to the front of the invocation list (via
+    /// reflection, with a plain-subscription fallback) so the history redirect is seen by NINA's ImageHistoryVM.
     /// </summary>
     [Export(typeof(IPluginManifest))]
     public class CanonAstroImage : PluginBase, INotifyPropertyChanged {
@@ -170,8 +176,22 @@ namespace NINA.Plugin.CanonAstroImage {
                     return;
                 }
 
-                var key = CorrelationKey(imageData.MetaData);
                 var cameraName = imageData.MetaData.Camera?.Name ?? "Unknown";
+
+                if (AutoDeleteCanonRaw) {
+                    if (imageData.Data?.RAWData == null) {
+                        Logger.Debug($"{LogPrefix}: frame carries no RAW data, NINA saves it as {userFileType} itself");
+                        return;
+                    }
+                    if (TryDetachRawData(imageData)) {
+                        Logger.Info($"{LogPrefix}: direct save - NINA will write this frame from {cameraName} as {userFileType}, no RAW file");
+                        LogMetadataSnapshot(stage, imageData.MetaData);
+                        return;
+                    }
+                    Logger.Warning($"{LogPrefix}: direct save unavailable, falling back to convert-then-delete for this frame");
+                }
+
+                var key = CorrelationKey(imageData.MetaData);
                 Logger.Info($"{LogPrefix}: converting image from {cameraName} to {userFileType} ({imageData.Properties.Width}x{imageData.Properties.Height})");
                 LogMetadataSnapshot(stage, imageData.MetaData);
 
@@ -301,6 +321,29 @@ namespace NINA.Plugin.CanonAstroImage {
         // ------------------------------------------------------------------
         // Helpers
         // ------------------------------------------------------------------
+
+        /// <summary>
+        /// Detach the camera's original RAW bytes from the frame so NINA's own save writes the selected format.
+        /// IImageArray.RAWData has a private setter on NINA's ImageArray/ImageArrayInt, so this uses reflection.
+        /// Returns false (frame untouched) if the setter cannot be found or the value did not change.
+        /// </summary>
+        private static bool TryDetachRawData(IImageData imageData) {
+            try {
+                var array = imageData.Data;
+                var setter = array.GetType()
+                    .GetProperty(nameof(IImageArray.RAWData), BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
+                    ?.GetSetMethod(nonPublic: true);
+                if (setter == null) {
+                    Logger.Warning($"{LogPrefix}: no RAWData setter on {array.GetType().FullName}");
+                    return false;
+                }
+                setter.Invoke(array, new object[] { null });
+                return array.RAWData == null;
+            } catch (Exception ex) {
+                Logger.Warning($"{LogPrefix}: detaching RAW data failed ({ex.Message})");
+                return false;
+            }
+        }
 
         /// <summary>Category of the connected camera's driver, or null if none is connected or it cannot be read.</summary>
         private string ConnectedCameraCategory() {
