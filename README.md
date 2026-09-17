@@ -54,7 +54,7 @@ The plugin uses an **active image writer pattern** with event-driven hooks:
 ### Auto-Delete CR3/CR2 Files
 1. Open NINA → Settings → Plugins → Canon Astro Image
 2. Check "Auto-Delete Canon RAW Files (CR3/CR2)"
-3. The RAW file is deleted only after the plugin has verified the converted file exists on disk. If conversion fails, or the output format is set to RAW, the RAW is kept and a warning is written to the NINA log.
+3. The RAW file is deleted only after the plugin has verified the converted file exists on disk. If conversion fails, the RAW is kept and a warning is written to the NINA log.
 
 ⚠️ **Important Notes**:
 - Deleting RAW files is permanent. Ensure backups if you need the originals.
