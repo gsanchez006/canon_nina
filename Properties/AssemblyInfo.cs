@@ -32,12 +32,16 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("1.4.0.0")]
-[assembly: AssemblyFileVersion("1.4.0.0")]
+[assembly: AssemblyVersion("1.5.0.0")]
+[assembly: AssemblyFileVersion("1.5.0.0")]
 
 // Plugin metadata
 [assembly: AssemblyMetadata("MinimumApplicationVersion", "3.0.0.0")]
 // Logo shown by NINA at the top right of the plugin page and as the icon in the plugin list.
 // NINA loads it from this URL, so it must be reachable: the PNG lives in this repo on GitHub.
 [assembly: AssemblyMetadata("FeaturedImageURL", "https://raw.githubusercontent.com/gsanchez006/canon_nina/main/Assets/logo-512.png")]
+// Plugin page link shown below the version number.
+[assembly: AssemblyMetadata("Homepage", "https://github.com/gsanchez006/canon_nina")]
+// Plugin page link shown below the homepage, points to the changelog on GitHub.
+[assembly: AssemblyMetadata("ChangelogURL", "https://github.com/gsanchez006/canon_nina/blob/main/CHANGELOG.md")]
 [assembly: AssemblyMetadata("LongDescription", "Removes the Canon RAW CR2/CR3 only image save limitation when using the native Canon driver. (FITS, XISF, TIFF) native support with proper metadata instead of saving only Canon proprietary CR2/CR3 files")]

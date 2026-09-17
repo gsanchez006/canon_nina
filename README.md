@@ -119,6 +119,9 @@ For issues, feature requests, or questions:
 
 ## Version History
 
+### 1.5.0.0
+- Added Homepage and Changelog links to the plugin's info page in NINA
+
 ### 1.4.0.0
 - **Fixed**: Auto-delete CR3/CR2 now correctly deletes the Canon RAW file when filename contains temperature or other metadata tokens
 - Root cause: FITS file was saved before camera temperature was available, producing a different filename than the CR3 saved by NINA; deletion was using the FITS-derived path instead of the actual CR3 path
