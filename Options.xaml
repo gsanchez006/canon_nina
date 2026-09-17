@@ -15,7 +15,11 @@
                 Margin="0,0,0,10" />
 
             <!-- Plugin enable/disable -->
-            <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+            <StackPanel
+                Orientation="Horizontal"
+                Margin="0,0,0,15"
+                Background="Transparent"
+                ToolTip="Save frames from Canon cameras connected through NINA's native Canon driver in the format chosen under Options -> Imaging -> File Settings. When off, NINA saves Canon frames as CR3/CR2 only. Other cameras are never affected.">
                 <CheckBox
                     x:Name="PluginEnabledToggle"
                     IsChecked="{Binding PluginEnabled, Mode=TwoWay}"
@@ -29,18 +33,21 @@
                     Foreground="{DynamicResource PrimaryBrush}" />
             </StackPanel>
 
-            <!-- Auto-delete (disabled when the plugin is disabled) -->
+            <!-- Also save the Canon RAW file (disabled when the plugin is disabled) -->
             <StackPanel
                 Orientation="Horizontal"
                 Margin="0,0,0,15"
-                IsEnabled="{Binding PluginEnabled}">
+                Background="Transparent"
+                IsEnabled="{Binding PluginEnabled}"
+                ToolTipService.ShowOnDisabled="True"
+                ToolTip="On: each frame is saved twice - in your selected format and as Canon's original CR3/CR2 file. Off: NINA saves only the selected format, in a single write per frame (faster, less disk space).">
                 <CheckBox
-                    x:Name="AutoDeleteToggle"
-                    IsChecked="{Binding AutoDeleteCanonRaw, Mode=TwoWay}"
+                    x:Name="SaveCanonRawToggle"
+                    IsChecked="{Binding SaveCanonRaw, Mode=TwoWay}"
                     VerticalAlignment="Center"
                     Margin="0,0,10,0" />
                 <TextBlock
-                    Text="Auto-Delete Canon RAW Files (CR3/CR2)"
+                    Text="Also save Canon RAW file (CR3/CR2)"
                     VerticalAlignment="Center"
                     TextWrapping="Wrap"
                     Foreground="{DynamicResource PrimaryBrush}" />
@@ -48,14 +55,14 @@
 
             <!-- Description -->
             <TextBlock
-                Text="Converts each Canon RAW capture to the format selected under Options -> Imaging -> File Settings (FITS, XISF or TIFF). With auto-delete on, the RAW file is removed only after the converted file has been verified on disk; if conversion fails, the RAW is kept."
+                Text="Saves each Canon capture in the format selected under Options -> Imaging -> File Settings (FITS, XISF or TIFF). Turn on &quot;Also save Canon RAW file&quot; to keep Canon's original CR3/CR2 next to it."
                 Foreground="{DynamicResource PrimaryBrush}"
                 Opacity="0.75"
                 FontSize="11"
                 TextWrapping="Wrap"
                 Margin="0,0,0,10" />
 
-            <!-- Permanent-deletion warning -->
+            <!-- No-RAW notice -->
             <Border
                 Background="{DynamicResource NotificationWarningBrush}"
                 BorderBrush="{DynamicResource NotificationWarningBrush}"
@@ -65,7 +72,7 @@
                 CornerRadius="3"
                 IsEnabled="{Binding PluginEnabled}">
                 <TextBlock
-                    Text="⚠ Deleting RAW files is permanent. Keep backups if you need the original CR3/CR2 files."
+                    Text="⚠ When &quot;Also save Canon RAW file&quot; is off, no CR3/CR2 is written: the FITS/XISF/TIFF file is the only copy of each frame."
                     Foreground="{DynamicResource NotificationWarningTextBrush}"
                     FontSize="11"
                     TextWrapping="Wrap" />
@@ -85,7 +92,7 @@
                         FontSize="11"
                         Margin="0,0,0,5" />
                     <TextBlock
-                        Text="1. Enable this plugin&#10;2. Choose FITS, XISF or TIFF under Options -> Imaging -> File Settings&#10;3. Take an exposure with your Canon camera&#10;4. The plugin writes the converted file; NINA writes the CR3/CR2&#10;5. With auto-delete on, the CR3/CR2 is removed once the converted file is verified"
+                        Text="1. Enable this plugin&#10;2. Choose FITS, XISF or TIFF under Options -> Imaging -> File Settings&#10;3. Take an exposure with your Canon camera on NINA's native Canon driver&#10;4. NINA saves the frame in your selected format&#10;5. With &quot;Also save Canon RAW file&quot; on, the CR3/CR2 is saved as well"
                         Foreground="{DynamicResource PrimaryBrush}"
                         FontSize="10"
                         TextWrapping="Wrap"
