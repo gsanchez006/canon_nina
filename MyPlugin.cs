@@ -12,6 +12,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
+using System.Globalization;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -27,15 +28,16 @@ namespace NINA.Plugin.CanonAstroImage {
     /// RAW bytes (or a different RAW type) and are left alone.
     ///
     /// NINA raises two events before it writes a file, in this order:
-    ///  1. BeforeImageSaved: "Also save Canon RAW" off -> detach the RAW bytes (and RAW type), so NINA's own save
-    ///     writes only the selected format, with NINA's retry, timeout and file naming.
+    ///  1. BeforeImageSaved: fill the sensor temperature from the frame's EXIF (NINA's Canon driver reports none).
+    ///     Then, with "Also save Canon RAW" off, detach the RAW bytes (and RAW type), so NINA's own save writes only
+    ///     the selected format, with NINA's retry, timeout and file naming.
     ///  2. BeforeFinalizeImageSaved: if the frame still carries RAW bytes ("Also save Canon RAW" on, or the detach
     ///     failed because NINA internals changed), write the selected format here. NINA then writes the CR3/CR2.
     ///     This event carries the custom file-name patterns other plugins add, so both files are named alike.
     /// </summary>
     [Export(typeof(IPluginManifest))]
     public sealed class CanonAstroImage : PluginBase, INotifyPropertyChanged {
-        private const string LogPrefix = "CanonAstroImage";
+        internal const string LogPrefix = "CanonAstroImage";
 
         // Profile-setting keys. Must stay unchanged so existing user profiles keep their values.
         private const string PluginEnabledKey = "PluginEnabled";
@@ -127,16 +129,21 @@ namespace NINA.Plugin.CanonAstroImage {
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// Runs before NINA prepares and writes the file. In direct-save mode the RAW bytes are detached here so NINA's
-        /// own save writes the selected format. Nothing is written by the plugin in this handler.
+        /// Runs before NINA prepares and writes the file. Fills the sensor temperature, then in direct-save mode
+        /// detaches the RAW bytes so NINA's own save writes the selected format. Nothing is written by the plugin here.
         /// </summary>
-        private Task ImageSaveMediator_BeforeImageSaved(object sender, BeforeImageSavedEventArgs e) {
+        private async Task ImageSaveMediator_BeforeImageSaved(object sender, BeforeImageSavedEventArgs e) {
             try {
                 var imageData = e?.Image;
-                if (imageData == null || !PluginEnabled || SaveCanonRaw || !IsCanonFrame(imageData.Data)) {
-                    return Task.CompletedTask;
+                if (imageData == null || !PluginEnabled || !IsCanonFrame(imageData.Data)) {
+                    return;
                 }
 
+                await FillSensorTemperatureAsync(imageData);
+
+                if (SaveCanonRaw) {
+                    return;
+                }
                 if (TryDetachRawData(imageData.Data)) {
                     Logger.Info($"{LogPrefix}: NINA will save this frame as {profileService.ActiveProfile.ImageFileSettings.FileType} only");
                 } else {
@@ -145,7 +152,24 @@ namespace NINA.Plugin.CanonAstroImage {
             } catch (Exception ex) {
                 Logger.Error($"{LogPrefix}: handling the Canon frame failed - NINA still saves the Canon RAW file", ex);
             }
-            return Task.CompletedTask;
+        }
+
+        /// <summary>
+        /// NINA's Canon driver reports no sensor temperature (NaN), so read it from the frame's CR3/CR2 EXIF before any
+        /// file is written. The FITS CCD-TEMP and XISF sensor-temperature headers, the $$SENSORTEMP$$ token of both
+        /// files and the metadata NINA passes on after the save then carry it, and NINA skips its own exiftool pass on
+        /// the written file. A temperature the camera driver did report is left alone.
+        /// </summary>
+        private static async Task FillSensorTemperatureAsync(IImageData imageData) {
+            var camera = imageData.MetaData.Camera;
+            if (!double.IsNaN(camera.Temperature)) {
+                return;
+            }
+            var celsius = await CanonSensorTemperature.ReadAsync(imageData.Data.RAWData, CanonSensorTemperature.ExifToolPath);
+            if (!double.IsNaN(celsius)) {
+                camera.Temperature = celsius;
+                Logger.Info($"{LogPrefix}: sensor temperature {celsius.ToString(CultureInfo.InvariantCulture)} C from the Canon RAW EXIF");
+            }
         }
 
         /// <summary>
