@@ -6,9 +6,12 @@
     <RootNamespace>NINA.Plugin.CanonAstroImage</RootNamespace>
     <AssemblyName>NINA.Plugin.CanonAstroImage</AssemblyName>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <Nullable>enable</Nullable>
     <UseWPF>true</UseWPF>
     <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <!-- Reproducible restores: packages.lock.json is committed and must be updated when the NINA.Plugin version changes. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
     <!-- Local development only: `dotnet build -p:DeployToNina=true` copies the DLL into the NINA plugin folder. -->
     <DeployToNina Condition="'$(DeployToNina)' == ''">false</DeployToNina>
     <NinaPluginDir>$(LOCALAPPDATA)\NINA\Plugins\3.0.0\Canon</NinaPluginDir>
@@ -18,12 +21,12 @@
     <PackageReference Include="NINA.Plugin" Version="3.2.0.9001" />
   </ItemGroup>
 
-  <!-- Exclude template folder from build -->
+  <!-- Exclude the template, the test project and local plan folders from this project's default globs -->
   <ItemGroup>
-    <Compile Remove="nina.plugin.template\**" />
-    <EmbeddedResource Remove="nina.plugin.template\**" />
-    <Page Remove="nina.plugin.template\**" />
-    <None Remove="nina.plugin.template\**" />
+    <Compile Remove="nina.plugin.template\**;tests\**;plan\**" />
+    <EmbeddedResource Remove="nina.plugin.template\**;tests\**;plan\**" />
+    <Page Remove="nina.plugin.template\**;tests\**;plan\**" />
+    <None Remove="nina.plugin.template\**;tests\**;plan\**" />
   </ItemGroup>
 
   <!-- Opt-in local deploy. Never runs on a plain `dotnet build` or in CI. -->
