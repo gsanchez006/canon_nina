@@ -70,15 +70,14 @@ powershell -ExecutionPolicy Bypass -File build.ps1
 
 ### `build.bat` (Batch Script)
 
-**Advantages:**
-- Works in traditional Command Prompt
-- No execution policy concerns
-- Minimal dependencies
+`build.bat` is a thin wrapper that runs `build.ps1` with `-ExecutionPolicy Bypass`, so Command Prompt users get
+exactly the same build without changing their execution policy. It switches to the repository root itself, so it can
+be run from any directory.
 
 **Requirements:**
 - Windows Command Prompt
 - .NET 8.0 SDK
-- PowerShell (integrated into script for ZIP creation)
+- Windows PowerShell 5.1 or later (present on every supported Windows)
 
 **Run:**
 ```cmd
@@ -95,6 +94,17 @@ dotnet build NINA.Plugin.CanonAstroImage.csproj -c Release -p:DeployToNina=true
 ```
 
 Restart NINA afterwards.
+
+## Running the tests
+
+The unit tests live in `tests/NINA.Plugin.CanonAstroImage.Tests` and need no NINA installation:
+
+```powershell
+dotnet test Canon_RAW.sln -c Release
+```
+
+They pin the reflection the plugin uses on NINA's `ImageArray` types. Run them after every `NINA.Plugin` package
+bump; a failure there means the direct-save path will fall back to writing both files.
 
 ## .NET SDK Requirements
 
@@ -135,8 +145,9 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 ## GitHub Release Workflow
 
-1. **Build locally:**
+1. **Test and build locally:**
    ```powershell
+   dotnet test Canon_RAW.sln -c Release
    .\build.ps1
    ```
 
@@ -176,17 +187,19 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-dotnet@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+      - name: Test
+        run: dotnet test Canon_RAW.sln -c Release
       - name: Build Plugin
-        run: .\NINA.Plugin.CanonAstroImage\build.ps1
+        run: .\build.ps1
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: canon-plugin
-          path: NINA.Plugin.CanonAstroImage/canon.zip
+          path: canon.zip
 ```
 
 ## Support

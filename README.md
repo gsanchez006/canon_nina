@@ -18,18 +18,18 @@ By default, NINA's Canon camera driver saves all images exclusively in Canon RAW
 ## How It Works
 
 ### Architecture
-NINA writes a Canon frame as CR3/CR2 only because the frame still carries the camera's original RAW bytes. Without them, NINA's normal save writes the format selected in Image File Settings. The plugin hooks NINA's `BeforeImageSaved` event (only for cameras on NINA's native Canon driver) and works in one of two modes:
+NINA writes a Canon frame as CR3/CR2 only because the frame still carries the camera's original RAW bytes. Without them, NINA's normal save writes the format selected in Image File Settings. The plugin acts only on frames that carry Canon RAW bytes (CR2/CR3), hooks the two events NINA raises before it writes a file, and works in one of two modes:
 
 1. **"Also save Canon RAW file" off (direct save)** - The plugin detaches the RAW bytes from the frame. NINA's own save then writes FITS/XISF/TIFF: one write per frame, NINA's final file name and metadata, and image history shows the file natively. No CR3/CR2 is written.
-2. **"Also save Canon RAW file" on (both files)** - The plugin writes the selected format with NINA's image writer, then NINA writes the CR3/CR2 as usual.
+2. **"Also save Canon RAW file" on (both files)** - Right before NINA writes the CR3/CR2 (its `BeforeFinalizeImageSaved` step), the plugin writes the selected format with NINA's image writer, using the same file pattern, the custom file-name tokens other plugins add, three attempts and a five-minute timeout, exactly like NINA's own write. NINA then writes the CR3/CR2 as usual.
 
 If the RAW bytes cannot be detached (for example after a NINA update changes its internals), the plugin logs a warning and simply saves both files for that frame. Nothing is ever deleted.
 
 ### Key Technical Details
-- Uses `IImageSaveMediator.BeforeImageSaved`, which NINA raises before it writes the file
-- Both-files mode calls `IImageData.SaveToDisk()` with `forceFileType: true`, using NINA's Image File Settings (path, per-image-type file pattern, compression)
+- Uses `IImageSaveMediator.BeforeImageSaved` (detach the RAW bytes) and `BeforeFinalizeImageSaved` (both-files write), which NINA raises in that order before it writes the file
+- Both-files mode calls `IImageData.SaveToDisk()` with `forceFileType: true` and the custom file-name patterns collected in `BeforeFinalizeImageSaved`, using NINA's Image File Settings (path, per-image-type file pattern, compression)
 - Stores the plugin's settings in the NINA profile
-- Checks the connected camera's driver on every frame: cameras on any other driver (dedicated astro cameras, ASCOM, the NINA simulator) are ignored, so the plugin can stay enabled when you switch cameras
+- Identifies Canon frames by their RAW bytes and RAW type (CR2/CR3) rather than by which camera is connected, so frames still queued when you disconnect or switch cameras are handled correctly. Cameras on any other driver (dedicated astro cameras, ASCOM, the NINA simulator, Nikon) produce no Canon RAW bytes and are ignored, so the plugin can stay enabled when you switch cameras
 
 ## Installation
 
@@ -69,7 +69,7 @@ Close NINA, extract the new `canon.zip` to the same place and overwrite the exis
 ⚠️ **Important Notes**:
 - With the option off there is no RAW copy: the FITS/XISF/TIFF file is the only copy of each frame.
 - With the option off, image history shows the FITS/XISF/TIFF file. With it on, image history shows the CR3/CR2 NINA saved.
-- If writing the FITS/XISF/TIFF file fails in both-files mode, NINA still saves the CR3/CR2 and the error is written to the NINA log.
+- If writing the FITS/XISF/TIFF file fails in both-files mode, NINA still saves the CR3/CR2 and the error is written to the NINA log. The write is attempted three times, one second apart, with a five-minute timeout, the same policy NINA applies to its own file writes.
 - Upgrading from an earlier version keeps your choice: the old "Auto-Delete" off (the default) becomes "Also save Canon RAW file" on.
 
 ## File Output
@@ -103,9 +103,11 @@ The converted file contains the undebayered sensor data with NINA's standard hea
 
 ## Known limitations
 
-- Direct save (Canon RAW saving off) relies on NINA internals: the RAW bytes have no public setter, so they are detached using reflection. If a NINA update breaks this, the plugin logs `could not detach the Canon RAW data - saving both files for this frame` and you get an extra CR3/CR2 per frame until the plugin is updated.
-- In direct save the selected format is the only file written. If NINA's writer fails for that specific file, there is no CR3/CR2 to fall back on (a failure that affects all writes, such as a full disk, loses the frame either way).
-- With Canon RAW saving on, the FITS/XISF/TIFF file is written synchronously inside NINA's save pipeline, so each exposure's save takes the extra write time. NINA does not pass a cancellation token to this hook, so an aborted sequence cannot interrupt a write already in progress.
+- Direct save (Canon RAW saving off) relies on NINA internals: the RAW bytes and RAW type have no public setter, so they are detached using reflection. If a NINA update breaks this, the plugin logs `could not detach the Canon RAW data - saving both files for this frame` and you get an extra CR3/CR2 per frame until the plugin is updated. The unit tests in `tests/` catch this at build time.
+- In direct save the selected format is the only file written. It goes through NINA's own write with NINA's three attempts and five-minute timeout, so against transient I/O errors it is the more robust of the two modes. If NINA's writer fails for that specific file after all attempts, there is no CR3/CR2 to fall back on (a failure that affects all writes, such as a full disk, loses the frame either way).
+- NINA's Canon driver reports no sensor temperature. In direct save the `$$SENSORTEMP$$` file-name token is therefore blank for Canon frames. With Canon RAW saving on, NINA reads the temperature out of the CR3/CR2 with exiftool for the CR3/CR2 file name only, so that one token can differ between the two files.
+- With Canon RAW saving on, the FITS/XISF/TIFF file is written synchronously inside NINA's save pipeline, so each exposure's save takes the extra write time. NINA logs `Eventhandler ... took N ms to execute` as a warning for any plugin handler that takes longer than one second; with this option on, expect that line on every frame. It is harmless. NINA does not pass a cancellation token to this hook, so an aborted sequence cannot interrupt a write already in progress; the plugin's own five-minute timeout is the upper bound.
+- NINA runs all plugins' `BeforeImageSaved` handlers at the same time. Another plugin that reads a Canon frame's RAW bytes in its own handler may see them already detached when Canon RAW saving is off.
 - Plugin settings (enabled, also save Canon RAW) are stored per NINA profile.
 
 ## License
@@ -120,6 +122,12 @@ For issues, feature requests, or questions:
 3. Include NINA logs if reporting bugs
 
 ## Version History
+
+### 1.7.1.0
+- **Fixed**: RAW type cleared with the RAW bytes, so NINA no longer runs exiftool on the converted file and logs an error per frame when the pattern contains `$$SENSORTEMP$$`
+- **Fixed**: both-files write moved to `BeforeFinalizeImageSaved`, so other plugins' file-name tokens are resolved and both files are named alike; it now retries three times with a five-minute timeout like NINA's own write
+- **Changed**: Canon frames are identified by their CR2/CR3 RAW bytes instead of the camera connected at save time
+- **Added**: unit tests; NuGet lock files; nullable reference types; `build.bat` now wraps `build.ps1`
 
 ### 1.7.0.0
 - **Changed**: The "Auto-Delete Canon RAW" toggle is replaced by "Also save Canon RAW file (CR3/CR2)"; existing settings carry over

@@ -2,6 +2,15 @@
 
 All notable changes to the Canon Astro Image plugin are documented here.
 
+## 1.7.1.0
+- **Fixed**: With Canon RAW saving off, the RAW type is now cleared together with the RAW bytes. NINA no longer runs exiftool against the FITS/XISF/TIFF file, logs an "EXIF Tool ... no valid temperature" error and renames the file on every frame when the file pattern contains `$$SENSORTEMP$$`.
+- **Fixed**: With Canon RAW saving on, the FITS/XISF/TIFF file is now written in NINA's `BeforeFinalizeImageSaved` step instead of `BeforeImageSaved`, so custom file-name tokens added by other plugins are resolved and both files are named alike. The write also follows NINA's own policy for its file writes: three attempts one second apart and a five-minute timeout, so a stalled write can no longer block NINA's save queue indefinitely.
+- **Changed**: A frame is treated as a Canon frame when it carries CR2/CR3 RAW bytes, instead of checking which camera is connected at the moment the frame is saved. Frames still queued when the camera is disconnected or switched are now handled correctly. Cameras on other drivers produce no Canon RAW bytes and are still never touched.
+- **Changed**: The "Also save Canon RAW file" choice is now stored under its own key (`SaveCanonRaw`). The old `AutoDeleteCanonRaw` key is still read as a fallback and still written, so upgrading and downgrading both keep the setting.
+- **Added**: Unit tests (`tests/NINA.Plugin.CanonAstroImage.Tests`, run with `dotnet test Canon_RAW.sln`) that pin the reflection the plugin relies on, so a NINA.Plugin package bump that breaks it fails the build instead of failing in the field.
+- **Changed**: `build.bat` is now a thin wrapper around `build.ps1`. NuGet lock files are committed for reproducible builds. Nullable reference types are enabled in the plugin project.
+- **Docs**: Known limitations now cover the blank `$$SENSORTEMP$$` token for Canon frames, NINA's "Eventhandler took N ms" warning in both-files mode, and other plugins' handlers running concurrently.
+
 ## 1.7.0.0
 - **Changed**: The "Auto-Delete Canon RAW Files" toggle is replaced by "Also save Canon RAW file (CR3/CR2)". Existing settings carry over: auto-delete off (the default) becomes Canon RAW saving on, and vice versa.
 - **Changed**: With Canon RAW saving off, Canon frames are now saved directly by NINA in the selected format (FITS/XISF/TIFF). The plugin detaches the camera's RAW bytes before NINA saves, so each frame is written once instead of writing the converted file, writing the CR3/CR2 and then deleting it. The file name, headers and image history come from NINA's own save.
