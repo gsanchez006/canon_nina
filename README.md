@@ -14,6 +14,7 @@ By default, NINA's Canon camera driver saves all images exclusively in Canon RAW
 - ✅ Save to **XISF** format with full XML metadata
 - ✅ Save to **TIFF** format with metadata preservation
 - ✅ Optionally also save Canon's original CR3/CR2 next to it
+- ✅ Get the camera's sensor temperature into FITS/XISF headers and `$$SENSORTEMP$$` file names, which NINA's Canon driver leaves empty
 
 ## How It Works
 
@@ -25,9 +26,12 @@ NINA writes a Canon frame as CR3/CR2 only because the frame still carries the ca
 
 If the RAW bytes cannot be detached (for example after a NINA update changes its internals), the plugin logs a warning and simply saves both files for that frame. Nothing is ever deleted.
 
+In both modes the plugin first fills in the sensor temperature. NINA's Canon driver reports none, because Canon's EDSDK has no numeric temperature property (only an overheating warning level). Canon does record the camera temperature in every CR3/CR2, so the plugin reads it from the frame's RAW bytes with the exiftool that ships with NINA and puts it in the image metadata before any file is written.
+
 ### Key Technical Details
 - Uses `IImageSaveMediator.BeforeImageSaved` (detach the RAW bytes) and `BeforeFinalizeImageSaved` (both-files write), which NINA raises in that order before it writes the file
 - Both-files mode calls `IImageData.SaveToDisk()` with `forceFileType: true` and the custom file-name patterns collected in `BeforeFinalizeImageSaved`, using NINA's Image File Settings (path, per-image-type file pattern, compression)
+- Reads the sensor temperature with NINA's bundled `Utility\ExifTool\exiftool.exe` (`-config "" -fast -n -s3 -CameraTemperature`, no user exiftool config loaded, RAW bytes piped on stdin, 30-second timeout) and sets `ImageMetaData.Camera.Temperature` only when the driver reported none. NINA's writers turn that into the FITS `CCD-TEMP` header and the XISF `Instrument:Sensor:Temperature` property, and NINA skips its own exiftool pass on the written file
 - Stores the plugin's settings in the NINA profile
 - Identifies Canon frames by their RAW bytes and RAW type (CR2/CR3) rather than by which camera is connected, so frames still queued when you disconnect or switch cameras are handled correctly. Cameras on any other driver (dedicated astro cameras, ASCOM, the NINA simulator, Nikon) produce no Canon RAW bytes and are ignored, so the plugin can stay enabled when you switch cameras
 
@@ -105,9 +109,10 @@ The converted file contains the undebayered sensor data with NINA's standard hea
 
 - Direct save (Canon RAW saving off) relies on NINA internals: the RAW bytes and RAW type have no public setter, so they are detached using reflection. If a NINA update breaks this, the plugin logs `could not detach the Canon RAW data - saving both files for this frame` and you get an extra CR3/CR2 per frame until the plugin is updated. The unit tests in `tests/` catch this at build time.
 - In direct save the selected format is the only file written. It goes through NINA's own write with NINA's three attempts and five-minute timeout, so against transient I/O errors it is the more robust of the two modes. If NINA's writer fails for that specific file after all attempts, there is no CR3/CR2 to fall back on (a failure that affects all writes, such as a full disk, loses the frame either way).
-- NINA's Canon driver reports no sensor temperature. In direct save the `$$SENSORTEMP$$` file-name token is therefore blank for Canon frames. With Canon RAW saving on, NINA reads the temperature out of the CR3/CR2 with exiftool for the CR3/CR2 file name only, so that one token can differ between the two files.
+- The sensor temperature is the whole-degree `CameraTemperature` value Canon records for each frame, not a live reading. NINA's Equipment → Camera panel still shows no temperature: NINA's Canon driver hard-codes it and plugins cannot change it. If exiftool cannot read the value (missing exiftool, a camera that does not record it), the plugin logs a warning and the headers and `$$SENSORTEMP$$` stay empty for that frame.
+- Reading the temperature adds about half a second per frame (exiftool start-up). The first run on a new machine can take several seconds while exiftool unpacks itself, and NINA may log its `Eventhandler ... took N ms` warning for that frame.
 - With Canon RAW saving on, the FITS/XISF/TIFF file is written synchronously inside NINA's save pipeline, so each exposure's save takes the extra write time. NINA logs `Eventhandler ... took N ms to execute` as a warning for any plugin handler that takes longer than one second; with this option on, expect that line on every frame. It is harmless. NINA does not pass a cancellation token to this hook, so an aborted sequence cannot interrupt a write already in progress; the plugin's own five-minute timeout is the upper bound.
-- NINA runs all plugins' `BeforeImageSaved` handlers at the same time. Another plugin that reads a Canon frame's RAW bytes in its own handler may see them already detached when Canon RAW saving is off.
+- NINA runs all plugins' `BeforeImageSaved` handlers at the same time. Another plugin that reads a Canon frame's RAW bytes in its own handler may see them already detached when Canon RAW saving is off, and may not see the sensor temperature yet. From `BeforeFinalizeImageSaved` on, the temperature is always set.
 - Plugin settings (enabled, also save Canon RAW) are stored per NINA profile.
 
 ## License
@@ -122,6 +127,11 @@ For issues, feature requests, or questions:
 3. Include NINA logs if reporting bugs
 
 ## Version History
+
+### 1.8.0.0
+- **Added**: sensor temperature from each frame's CR3/CR2 EXIF (read with NINA's bundled exiftool) in the image metadata: FITS `CCD-TEMP`, XISF sensor temperature, `$$SENSORTEMP$$` and the metadata NINA passes on after the save
+- **Fixed**: with Canon RAW saving on, no more per-frame "EXIF Tool ... no valid temperature" error when the pattern contains `$$SENSORTEMP$$`
+- **Changed**: `$$SENSORTEMP$$` is the same in both files and uses NINA's number format (`48.00` instead of `48c`)
 
 ### 1.7.1.0
 - **Fixed**: RAW type cleared with the RAW bytes, so NINA no longer runs exiftool on the converted file and logs an error per frame when the pattern contains `$$SENSORTEMP$$`

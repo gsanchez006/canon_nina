@@ -2,6 +2,12 @@
 
 All notable changes to the Canon Astro Image plugin are documented here.
 
+## 1.8.0.0
+- **Added**: Canon frames now carry the camera's sensor temperature. NINA's Canon driver reports none (the EDSDK has no numeric temperature property), so before anything is written the plugin reads the `CameraTemperature` Canon records in each CR3/CR2 with the exiftool NINA ships and puts it in the image metadata. FITS files get `CCD-TEMP`, XISF files get the sensor temperature property, and the metadata NINA passes to image history and other plugins after the save carries it. The RAW bytes are piped to exiftool, nothing extra is written to disk; it adds about half a second per frame.
+- **Fixed**: With Canon RAW saving on, NINA no longer runs exiftool on the FITS/XISF/TIFF file and logs an "EXIF Tool ... no valid temperature" error on every frame when the file pattern contains `$$SENSORTEMP$$`.
+- **Changed**: `$$SENSORTEMP$$` is now filled for Canon frames in both modes and is the same in both files. It uses NINA's standard number format (`48.00`) instead of the exiftool text NINA used for the CR3/CR2 name before (`48c`).
+- The Equipment → Camera panel still shows no temperature: NINA's Canon driver hard-codes it and plugins cannot change it.
+
 ## 1.7.1.0
 - **Fixed**: With Canon RAW saving off, the RAW type is now cleared together with the RAW bytes. NINA no longer runs exiftool against the FITS/XISF/TIFF file, logs an "EXIF Tool ... no valid temperature" error and renames the file on every frame when the file pattern contains `$$SENSORTEMP$$`.
 - **Fixed**: With Canon RAW saving on, the FITS/XISF/TIFF file is now written in NINA's `BeforeFinalizeImageSaved` step instead of `BeforeImageSaved`, so custom file-name tokens added by other plugins are resolved and both files are named alike. The write also follows NINA's own policy for its file writes: three attempts one second apart and a five-minute timeout, so a stalled write can no longer block NINA's save queue indefinitely.
