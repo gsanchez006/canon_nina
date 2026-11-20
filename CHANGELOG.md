@@ -2,6 +2,16 @@
 
 All notable changes to the Canon Astro Image plugin are documented here.
 
+## 1.9.0.0
+- **Added**: Pixel size and sensor size for Canon cameras. NINA's Canon driver reports neither, so NINA kept the previous camera's values and switching between Canon bodies left the pixel size, the framing assistant's field of view, plate solving and the `XPIXSZ` header wrong until they were typed in by hand. When a Canon camera connects, the plugin now looks it up in a built-in table of 79 Canon EOS models that write CR2/CR3 (2004 EOS-1D Mark II / EOS 20D to the 2025 EOS R6 Mark III and R50 V) and sets Options → Equipment → Camera → Pixel size and the framing assistant's pixel size, width and height.
+  - Pixel size: Canon's published sensor width / effective image width (Canon Camera Museum, canon.co.uk where the museum has no entry yet).
+  - Width × height: the image NINA actually decodes from the camera's RAW file, measured by running NINA 3.2's own RAW decoder (FreeImage with LibRaw 0.20) on a raw.pixls.us sample of each model. This is larger than Canon's "effective pixels" (6024 × 4020 for a 6000 × 4000 camera); on some newer R bodies NINA's decoder returns the full sensor readout, and the table uses that.
+  - Every regional name is recognised (Rebel / Kiss / xxxD, and the EXIF spellings such as `EOS R5m2`).
+  - A model not in the table (or the EOS R1, which has no public sample file yet) gets the missing values from its first frame: the size NINA decoded and, for unknown models, the pitch from Canon's EXIF focal-plane resolution. The NINA log then prints the line needed to add it.
+  - The table is `CanonSensors.json`, embedded in the DLL. `tools/sensor-table/sensor_table.py` adds new cameras (from the Canon Camera Museum page plus a RAW file, a raw.pixls.us sample or the NINA log line) and re-checks every entry after a NINA update; see `tools/sensor-table/README.md`.
+  - Only NINA's Canon driver is touched, and only while it reports no pixel size. New option "Set pixel size and sensor size when a Canon camera connects" (on by default, independent of "Enable Plugin", stored per profile); the options page shows the values last applied.
+- **Changed**: The exiftool call is shared by the temperature read and the new focal-plane read (`CanonExif`).
+
 ## 1.8.0.0
 - **Added**: Canon frames now carry the camera's sensor temperature. NINA's Canon driver reports none (the EDSDK has no numeric temperature property), so before anything is written the plugin reads the `CameraTemperature` Canon records in each CR3/CR2 with the exiftool NINA ships and puts it in the image metadata. FITS files get `CCD-TEMP`, XISF files get the sensor temperature property, and the metadata NINA passes to image history and other plugins after the save carries it. The RAW bytes are piped to exiftool, nothing extra is written to disk; it adds about half a second per frame.
 - **Fixed**: With Canon RAW saving on, NINA no longer runs exiftool on the FITS/XISF/TIFF file and logs an "EXIF Tool ... no valid temperature" error on every frame when the file pattern contains `$$SENSORTEMP$$`.
