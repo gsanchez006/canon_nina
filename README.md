@@ -15,6 +15,7 @@ By default, NINA's Canon camera driver saves all images exclusively in Canon RAW
 - ✅ Save to **TIFF** format with metadata preservation
 - ✅ Optionally also save Canon's original CR3/CR2 next to it
 - ✅ Get the camera's sensor temperature into FITS/XISF headers and `$$SENSORTEMP$$` file names, which NINA's Canon driver leaves empty
+- ✅ Get the right pixel size and sensor size in NINA and the framing assistant when you switch between Canon cameras, which NINA's Canon driver never reports
 
 ## How It Works
 
@@ -76,6 +77,21 @@ Close NINA, extract the new `canon.zip` to the same place and overwrite the exis
 - If writing the FITS/XISF/TIFF file fails in both-files mode, NINA still saves the CR3/CR2 and the error is written to the NINA log. The write is attempted three times, one second apart, with a five-minute timeout, the same policy NINA applies to its own file writes.
 - Upgrading from an earlier version keeps your choice: the old "Auto-Delete" off (the default) becomes "Also save Canon RAW file" on.
 
+### Camera Pixel Size and Sensor Size
+NINA's Canon driver reports no pixel size and no sensor dimensions, so when you switch between Canon cameras NINA keeps the previous camera's values. The pixel size in Options → Equipment → Camera, the framing assistant's field of view, plate solving and the `XPIXSZ` FITS header are then wrong until you type the right values in by hand.
+
+With **"Set pixel size and sensor size when a Canon camera connects"** on (the default), the plugin looks the connected camera up in its built-in table of Canon EOS cameras that write CR2/CR3, from the 2004 EOS-1D Mark II and EOS 20D to the current R bodies, and sets:
+- Options → Equipment → Camera → **Pixel size**
+- the framing assistant's **pixel size**, **width** and **height**
+
+The camera is recognised by every name it is sold under (for example EOS 800D, Rebel T7i and Kiss X9i are the same camera). The options page shows the values that were last applied.
+
+- **Pixel size** is Canon's published sensor width divided by the effective image width, from the [Canon Camera Museum](https://global.canon/en/c-museum/camera.html?s=dslr&s2=all) spec sheets.
+- **Width and height** are the size of the image NINA actually decodes from that camera's RAW file. That is slightly larger than Canon's "effective pixels" (for example 6024 × 4020 for a 6000 × 4000 camera) and is what NINA's frames and plate solves use. It was measured by running NINA's own RAW decoder on a sample file of each camera.
+- A camera that is not in the table, or whose decoded size is not known, gets the missing values from its first frame: the image size NINA decoded and the pixel pitch from Canon's EXIF focal-plane resolution (within a few percent). The NINA log then asks you to report the model so it can be added.
+- Cameras on any other driver, and drivers that report their own pixel size, are never touched. The setting is independent of "Enable Plugin" and is stored per profile.
+- The table is [`CanonSensors.json`](CanonSensors.json). New Canon models are added with the tool in [`tools/sensor-table`](tools/sensor-table/README.md), which measures a camera's RAW file with NINA's own decoder. If your camera is missing, open an issue with the "to add the ... report this line" message from the NINA log.
+
 ## File Output
 
 When using this plugin, you get:
@@ -113,7 +129,10 @@ The converted file contains the undebayered sensor data with NINA's standard hea
 - Reading the temperature adds about half a second per frame (exiftool start-up). The first run on a new machine can take several seconds while exiftool unpacks itself, and NINA may log its `Eventhandler ... took N ms` warning for that frame.
 - With Canon RAW saving on, the FITS/XISF/TIFF file is written synchronously inside NINA's save pipeline, so each exposure's save takes the extra write time. NINA logs `Eventhandler ... took N ms to execute` as a warning for any plugin handler that takes longer than one second; with this option on, expect that line on every frame. It is harmless. NINA does not pass a cancellation token to this hook, so an aborted sequence cannot interrupt a write already in progress; the plugin's own five-minute timeout is the upper bound.
 - NINA runs all plugins' `BeforeImageSaved` handlers at the same time. Another plugin that reads a Canon frame's RAW bytes in its own handler may see them already detached when Canon RAW saving is off, and may not see the sensor temperature yet. From `BeforeFinalizeImageSaved` on, the temperature is always set.
-- Plugin settings (enabled, also save Canon RAW) are stored per NINA profile.
+- The sensor-size feature overwrites the pixel size in Options → Equipment → Camera every time a Canon camera in the table connects, including a value you typed in by hand. Turn the option off to manage it yourself.
+- NINA's RAW decoder (LibRaw 0.20 inside NINA's FreeImage) does not know the masked borders of some newer bodies (EOS R3, R5, R5 Mark II, R6 Mark II, R6 Mark III, R8, R10, R50, R50 V) and decodes their full sensor readout, including the dark border columns and rows. The table uses that full size, because it is what NINA's frames actually are. A future NINA with a newer decoder may crop these; `tools/sensor-table` can re-check the table when that happens. There is no sample file of the EOS R1 yet, so its image size is taken from its first frame.
+- NINA's decoder cannot open Canon's compressed C-RAW files of most R bodies. NINA's Canon driver switches the camera to uncompressed RAW when it connects, so this does not affect captures, and the table was measured from uncompressed RAW samples.
+- Plugin settings (enabled, also save Canon RAW, set sensor size) are stored per NINA profile.
 
 ## License
 
@@ -127,6 +146,10 @@ For issues, feature requests, or questions:
 3. Include NINA logs if reporting bugs
 
 ## Version History
+
+### 1.9.0.0
+- **Added**: pixel size and sensor size set automatically when a Canon camera connects, from a built-in table of 79 Canon EOS models (CR2/CR3), with every regional name; `tools/sensor-table` to add new models; first-frame fallback for models not in the table
+- **Added**: option "Set pixel size and sensor size when a Canon camera connects" (on by default)
 
 ### 1.8.0.0
 - **Added**: sensor temperature from each frame's CR3/CR2 EXIF (read with NINA's bundled exiftool) in the image metadata: FITS `CCD-TEMP`, XISF sensor temperature, `$$SENSORTEMP$$` and the metadata NINA passes on after the save

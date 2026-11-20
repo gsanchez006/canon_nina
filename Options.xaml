@@ -78,6 +78,32 @@
                     TextWrapping="Wrap" />
             </Border>
 
+            <!-- Sensor size on connect. Independent of "Enable Plugin". -->
+            <StackPanel
+                Orientation="Horizontal"
+                Margin="0,5,0,5"
+                Background="Transparent"
+                ToolTip="NINA's Canon driver reports no pixel size or sensor size, so NINA keeps the values of the previous camera. When a Canon camera connects, the plugin looks the model up in its built-in table of Canon EOS cameras and sets Options -> Equipment -> Camera -> Pixel size and the framing assistant's pixel size, width and height. A model that is not in the table gets them from its first frame. This overwrites a pixel size you entered by hand.">
+                <CheckBox
+                    x:Name="SetSensorSizeToggle"
+                    IsChecked="{Binding SetSensorSize, Mode=TwoWay}"
+                    VerticalAlignment="Center"
+                    Margin="0,0,10,0" />
+                <TextBlock
+                    Text="Set pixel size and sensor size when a Canon camera connects"
+                    VerticalAlignment="Center"
+                    TextWrapping="Wrap"
+                    FontWeight="Bold"
+                    Foreground="{DynamicResource PrimaryBrush}" />
+            </StackPanel>
+            <TextBlock
+                Text="{Binding SensorSizeStatus, StringFormat='Last applied: {0}'}"
+                Foreground="{DynamicResource PrimaryBrush}"
+                Opacity="0.75"
+                FontSize="11"
+                TextWrapping="Wrap"
+                Margin="0,0,0,15" />
+
             <!-- How it works. No fill: PrimaryBrush text is only guaranteed readable on the page background in every theme. -->
             <Border
                 BorderBrush="{DynamicResource BorderBrush}"

@@ -1,5 +1,6 @@
 using NINA.Core.Model;
 using NINA.Core.Utility;
+using NINA.Equipment.Interfaces.Mediator;
 using NINA.Image.FileFormat;
 using NINA.Image.Interfaces;
 using NINA.Plugin;
@@ -7,6 +8,7 @@ using NINA.Plugin.Interfaces;
 using NINA.Profile;
 using NINA.Profile.Interfaces;
 using NINA.WPF.Base.Interfaces.Mediator;
+using NINA.WPF.Base.Interfaces.ViewModel;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -34,6 +36,9 @@ namespace NINA.Plugin.CanonAstroImage {
     ///  2. BeforeFinalizeImageSaved: if the frame still carries RAW bytes ("Also save Canon RAW" on, or the detach
     ///     failed because NINA internals changed), write the selected format here. NINA then writes the CR3/CR2.
     ///     This event carries the custom file-name patterns other plugins add, so both files are named alike.
+    ///
+    /// Independently of the save options, when a Canon camera connects the plugin sets the pixel size and sensor
+    /// dimensions NINA's Canon driver does not report (see CanonSensorSettings).
     /// </summary>
     [Export(typeof(IPluginManifest))]
     public sealed class CanonAstroImage : PluginBase, INotifyPropertyChanged {
@@ -47,6 +52,8 @@ namespace NINA.Plugin.CanonAstroImage {
         // auto-delete off (the old default) = also save Canon RAW on. Read as a fallback when the new key is absent,
         // and still written so a downgrade to 1.7.0 keeps the user's choice.
         private const string AutoDeleteCanonRawKey = "AutoDeleteCanonRaw";
+        // Since 1.9.0.
+        private const string SetSensorSizeKey = "SetCanonSensorSize";
 
         // Mirrors NINA's own policy for its file write in ImageSaveController (5 minute timeout, 3 attempts, 1 s apart).
         private static readonly TimeSpan WriteTimeout = TimeSpan.FromMinutes(5);
@@ -60,11 +67,15 @@ namespace NINA.Plugin.CanonAstroImage {
         private readonly IImageSaveMediator imageSaveMediator;
         private readonly IPluginOptionsAccessor pluginSettings;
         private readonly Guid pluginGuid;
+        private readonly CanonSensorSettings sensorSettings;
 
         [ImportingConstructor]
-        public CanonAstroImage(IProfileService profileService, IImageSaveMediator imageSaveMediator) {
+        public CanonAstroImage(IProfileService profileService, IImageSaveMediator imageSaveMediator,
+                               ICameraMediator cameraMediator, IFramingAssistantVM framingAssistantVM) {
             ArgumentNullException.ThrowIfNull(profileService);
             ArgumentNullException.ThrowIfNull(imageSaveMediator);
+            ArgumentNullException.ThrowIfNull(cameraMediator);
+            ArgumentNullException.ThrowIfNull(framingAssistantVM);
 
             this.profileService = profileService;
             this.imageSaveMediator = imageSaveMediator;
@@ -72,6 +83,9 @@ namespace NINA.Plugin.CanonAstroImage {
             // Reads and writes always go to the currently active profile, so profile switches are honoured.
             pluginGuid = Guid.Parse(Identifier);
             pluginSettings = new PluginOptionsAccessor(profileService, pluginGuid);
+
+            sensorSettings = new CanonSensorSettings(profileService, cameraMediator, framingAssistantVM, () => SetSensorSize);
+            sensorSettings.StatusChanged += SensorSettings_StatusChanged;
 
             profileService.ProfileChanged += ProfileService_ProfileChanged;
             imageSaveMediator.BeforeImageSaved += ImageSaveMediator_BeforeImageSaved;
@@ -82,6 +96,8 @@ namespace NINA.Plugin.CanonAstroImage {
             imageSaveMediator.BeforeFinalizeImageSaved -= ImageSaveMediator_BeforeFinalizeImageSaved;
             imageSaveMediator.BeforeImageSaved -= ImageSaveMediator_BeforeImageSaved;
             profileService.ProfileChanged -= ProfileService_ProfileChanged;
+            sensorSettings.StatusChanged -= SensorSettings_StatusChanged;
+            sensorSettings.Dispose();
             return base.Teardown();
         }
 
@@ -118,10 +134,42 @@ namespace NINA.Plugin.CanonAstroImage {
             }
         }
 
+        /// <summary>
+        /// Set NINA's camera pixel size and the framing assistant's pixel size and sensor dimensions when a Canon
+        /// camera connects. Independent of the save options above.
+        /// </summary>
+        public bool SetSensorSize {
+            get => pluginSettings.GetValueBoolean(SetSensorSizeKey, true);
+            set {
+                pluginSettings.SetValueBoolean(SetSensorSizeKey, value);
+                Logger.Info($"{LogPrefix}: set Canon sensor size on connect = {value}");
+                RaisePropertyChanged();
+                if (value) {
+                    ApplySensorSizeToConnectedCamera();
+                }
+            }
+        }
+
+        /// <summary>The last pixel size / sensor size the plugin applied, for the options page.</summary>
+        public string SensorSizeStatus => sensorSettings.Status;
+
+        private void SensorSettings_StatusChanged(object? sender, EventArgs e) => RaisePropertyChanged(nameof(SensorSizeStatus));
+
+        private void ApplySensorSizeToConnectedCamera() {
+            try {
+                sensorSettings.ApplyToConnectedCamera();
+            } catch (Exception ex) {
+                Logger.Error($"{LogPrefix}: setting the Canon sensor size failed", ex);
+            }
+        }
+
         private void ProfileService_ProfileChanged(object? sender, EventArgs e) {
             // The values are read from the active profile on every access; only the UI needs a nudge.
             RaisePropertyChanged(nameof(PluginEnabled));
             RaisePropertyChanged(nameof(SaveCanonRaw));
+            RaisePropertyChanged(nameof(SetSensorSize));
+            // The new profile has its own camera pixel size; put the connected Canon camera's values back.
+            ApplySensorSizeToConnectedCamera();
         }
 
         // ------------------------------------------------------------------
@@ -129,13 +177,21 @@ namespace NINA.Plugin.CanonAstroImage {
         // ------------------------------------------------------------------
 
         /// <summary>
-        /// Runs before NINA prepares and writes the file. Fills the sensor temperature, then in direct-save mode
-        /// detaches the RAW bytes so NINA's own save writes the selected format. Nothing is written by the plugin here.
+        /// Runs before NINA prepares and writes the file. Lets the sensor-size feature read what it still needs from
+        /// the first frame, fills the sensor temperature, then in direct-save mode detaches the RAW bytes so NINA's own
+        /// save writes the selected format. Nothing is written by the plugin here.
         /// </summary>
         private async Task ImageSaveMediator_BeforeImageSaved(object sender, BeforeImageSavedEventArgs e) {
             try {
                 var imageData = e?.Image;
-                if (imageData == null || !PluginEnabled || !IsCanonFrame(imageData.Data)) {
+                if (imageData == null || !IsCanonFrame(imageData.Data)) {
+                    return;
+                }
+
+                // Needs the RAW bytes, so it runs before they are detached. Independent of "Enable Plugin".
+                await sensorSettings.OnCanonFrameAsync(imageData);
+
+                if (!PluginEnabled) {
                     return;
                 }
 

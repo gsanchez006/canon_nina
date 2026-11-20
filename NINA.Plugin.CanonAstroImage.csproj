@@ -21,12 +21,17 @@
     <PackageReference Include="NINA.Plugin" Version="3.2.0.9001" />
   </ItemGroup>
 
+  <!-- The Canon sensor table, read at runtime by CanonSensorDatabase. -->
+  <ItemGroup>
+    <EmbeddedResource Include="CanonSensors.json" LogicalName="NINA.Plugin.CanonAstroImage.CanonSensors.json" />
+  </ItemGroup>
+
   <!-- Exclude the template, the test project and local plan folders from this project's default globs -->
   <ItemGroup>
-    <Compile Remove="nina.plugin.template\**;tests\**;plan\**" />
-    <EmbeddedResource Remove="nina.plugin.template\**;tests\**;plan\**" />
-    <Page Remove="nina.plugin.template\**;tests\**;plan\**" />
-    <None Remove="nina.plugin.template\**;tests\**;plan\**" />
+    <Compile Remove="nina.plugin.template\**;tests\**;plan\**;tools\**" />
+    <EmbeddedResource Remove="nina.plugin.template\**;tests\**;plan\**;tools\**" />
+    <Page Remove="nina.plugin.template\**;tests\**;plan\**;tools\**" />
+    <None Remove="nina.plugin.template\**;tests\**;plan\**;tools\**" />
   </ItemGroup>
 
   <!-- Opt-in local deploy. Never runs on a plain `dotnet build` or in CI. -->
