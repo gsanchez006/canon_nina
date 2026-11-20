@@ -1,0 +1,954 @@
+{
+  "about": [
+    "Canon EOS cameras that write CR2/CR3, embedded in the plugin. Looked up by the model name NINA's Canon driver reports.",
+    "model / aliases: every name the camera is sold or reports itself under (spacing, case, hyphens, 'Canon', 'EOS', 'Digital' and 'Mark II'/'m2'/'II' spellings do not matter).",
+    "Pixel size = sensorWidthMm * 1000 / effectiveWidth (Canon's published sensor width and effective image width).",
+    "decodedWidth x decodedHeight = the image NINA decodes from the camera's RAW file (NINA's own FreeImage/LibRaw, RAW_UNPROCESSED cropped to Raw.Frame). 0 x 0 = unknown: the plugin takes it from the camera's first frame.",
+    "To add a camera see tools/sensor-table/README.md."
+  ],
+  "cameras": [
+    {
+      "model": "EOS 20D",
+      "aliases": [],
+      "year": 2004,
+      "sensorWidthMm": 22.5,
+      "effectiveWidth": 3504,
+      "decodedWidth": 3522,
+      "decodedHeight": 2348,
+      "specSource": "Canon Camera Museum dslr786",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 20D/IMG_3893.CR2"
+    },
+    {
+      "model": "EOS-1D Mark II",
+      "aliases": [],
+      "year": 2004,
+      "sensorWidthMm": 28.7,
+      "effectiveWidth": 3504,
+      "decodedWidth": 3522,
+      "decodedHeight": 2348,
+      "specSource": "Canon Camera Museum dslr785",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS-1D Mark II/RAW_CANON_1DM2.CR2"
+    },
+    {
+      "model": "EOS-1Ds Mark II",
+      "aliases": [],
+      "year": 2004,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 4992,
+      "decodedWidth": 5010,
+      "decodedHeight": 3335,
+      "specSource": "Canon Camera Museum dslr787 (sensor size: Canon spec, page has no table)",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS-1Ds Mark II/RAW_CANON_1DSM2.CR2"
+    },
+    {
+      "model": "EOS 20Da",
+      "aliases": [],
+      "year": 2005,
+      "sensorWidthMm": 22.5,
+      "effectiveWidth": 3504,
+      "decodedWidth": 3522,
+      "decodedHeight": 2348,
+      "specSource": "Canon Camera Museum dslr788 (sensor size: Canon spec, page has no table)",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 20D/IMG_3893.CR2 (same sensor as EOS 20D)"
+    },
+    {
+      "model": "EOS 5D",
+      "aliases": [],
+      "year": 2005,
+      "sensorWidthMm": 35.8,
+      "effectiveWidth": 4368,
+      "decodedWidth": 4386,
+      "decodedHeight": 2920,
+      "specSource": "Canon Camera Museum dslr791",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 5D/IMG_1428.CR2"
+    },
+    {
+      "model": "EOS Digital Rebel XT",
+      "aliases": [
+        "EOS Kiss Digital N",
+        "EOS 350D"
+      ],
+      "year": 2005,
+      "sensorWidthMm": 22.2,
+      "effectiveWidth": 3456,
+      "decodedWidth": 3474,
+      "decodedHeight": 2314,
+      "specSource": "Canon Camera Museum dslr789",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Kiss Digital N/20170226_0040.CR2"
+    },
+    {
+      "model": "EOS-1D Mark II N",
+      "aliases": [],
+      "year": 2005,
+      "sensorWidthMm": 28.7,
+      "effectiveWidth": 3504,
+      "decodedWidth": 3522,
+      "decodedHeight": 2348,
+      "specSource": "Canon Camera Museum dslr790",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS-1D Mark II N/RY5Q8391-20170423-ss250-ap8.0-fl50-iso100.CR2"
+    },
+    {
+      "model": "EOS 30D",
+      "aliases": [],
+      "year": 2006,
+      "sensorWidthMm": 22.5,
+      "effectiveWidth": 3504,
+      "decodedWidth": 3522,
+      "decodedHeight": 2348,
+      "specSource": "Canon Camera Museum dslr792",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 30D/IMG_0062.CR2"
+    },
+    {
+      "model": "EOS Digital Rebel XTi",
+      "aliases": [
+        "EOS Kiss Digital X",
+        "EOS 400D"
+      ],
+      "year": 2006,
+      "sensorWidthMm": 22.2,
+      "effectiveWidth": 3888,
+      "decodedWidth": 3906,
+      "decodedHeight": 2602,
+      "specSource": "Canon Camera Museum dslr793",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Digital Rebel XTi/img_2981.cr2"
+    },
+    {
+      "model": "EOS 40D",
+      "aliases": [],
+      "year": 2007,
+      "sensorWidthMm": 22.2,
+      "effectiveWidth": 3888,
+      "decodedWidth": 3908,
+      "decodedHeight": 2602,
+      "specSource": "Canon Camera Museum dslr795",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 40D/_MG_0153.CR2"
+    },
+    {
+      "model": "EOS-1D Mark III",
+      "aliases": [],
+      "year": 2007,
+      "sensorWidthMm": 28.1,
+      "effectiveWidth": 3888,
+      "decodedWidth": 3908,
+      "decodedHeight": 2600,
+      "specSource": "Canon Camera Museum dslr794",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS-1D Mark III/_K5R7350.CR2"
+    },
+    {
+      "model": "EOS-1Ds Mark III",
+      "aliases": [],
+      "year": 2007,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 5616,
+      "decodedWidth": 5640,
+      "decodedHeight": 3752,
+      "specSource": "Canon Camera Museum dslr796 (sensor size: Canon spec, page has no table)",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS-1Ds Mark III/RAW_CANON_1DSM3.CR2"
+    },
+    {
+      "model": "EOS 50D",
+      "aliases": [],
+      "year": 2008,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 4752,
+      "decodedWidth": 4770,
+      "decodedHeight": 3176,
+      "specSource": "Canon Camera Museum dslr799",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 50D/IMG_9516.CR2"
+    },
+    {
+      "model": "EOS 5D Mark II",
+      "aliases": [],
+      "year": 2008,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 5616,
+      "decodedWidth": 5634,
+      "decodedHeight": 3752,
+      "specSource": "Canon Camera Museum dslr800 (sensor size: Canon spec, page has no table)",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 5D Mark II/08.canon.raw.cr2"
+    },
+    {
+      "model": "EOS Digital Rebel XS",
+      "aliases": [
+        "EOS Kiss F",
+        "EOS 1000D"
+      ],
+      "year": 2008,
+      "sensorWidthMm": 22.2,
+      "effectiveWidth": 3888,
+      "decodedWidth": 3906,
+      "decodedHeight": 2602,
+      "specSource": "Canon Camera Museum dslr798",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Kiss F/IMG_7072.CR2"
+    },
+    {
+      "model": "EOS Digital Rebel XSi",
+      "aliases": [
+        "EOS Kiss X2",
+        "EOS 450D"
+      ],
+      "year": 2008,
+      "sensorWidthMm": 22.2,
+      "effectiveWidth": 4272,
+      "decodedWidth": 4290,
+      "decodedHeight": 2856,
+      "specSource": "Canon Camera Museum dslr797",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Digital Rebel XSi/_MG_1125.CR2"
+    },
+    {
+      "model": "EOS 7D",
+      "aliases": [],
+      "year": 2009,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5202,
+      "decodedHeight": 3464,
+      "specSource": "Canon Camera Museum dslr802",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 7D/RAW_CANON_EOS_7D-raw.CR2"
+    },
+    {
+      "model": "EOS Rebel T1i",
+      "aliases": [
+        "EOS Kiss X3",
+        "EOS 500D"
+      ],
+      "year": 2009,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 4752,
+      "decodedWidth": 4770,
+      "decodedHeight": 3178,
+      "specSource": "Canon Camera Museum dslr801",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel T1i/IMG_0493.CR2"
+    },
+    {
+      "model": "EOS-1D Mark IV",
+      "aliases": [],
+      "year": 2009,
+      "sensorWidthMm": 27.9,
+      "effectiveWidth": 4896,
+      "decodedWidth": 4916,
+      "decodedHeight": 3272,
+      "specSource": "Canon Camera Museum dslr803",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS-1D Mark IV/IMG_5391.CR2"
+    },
+    {
+      "model": "EOS 60D",
+      "aliases": [],
+      "year": 2010,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5202,
+      "decodedHeight": 3464,
+      "specSource": "Canon Camera Museum dslr805",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 60D/IMG_2014.CR2"
+    },
+    {
+      "model": "EOS Rebel T2i",
+      "aliases": [
+        "EOS Kiss X4",
+        "EOS 550D"
+      ],
+      "year": 2010,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5202,
+      "decodedHeight": 3464,
+      "specSource": "Canon Camera Museum dslr804",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel T2i/IMG_9301.CR2"
+    },
+    {
+      "model": "EOS Rebel T3",
+      "aliases": [
+        "EOS Kiss X50",
+        "EOS 1100D"
+      ],
+      "year": 2011,
+      "sensorWidthMm": 22.0,
+      "effectiveWidth": 4272,
+      "decodedWidth": 4290,
+      "decodedHeight": 2856,
+      "specSource": "Canon Camera Museum dslr807",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel T3/IMG_0294.CR2"
+    },
+    {
+      "model": "EOS Rebel T3i",
+      "aliases": [
+        "EOS Kiss X5",
+        "EOS 600D"
+      ],
+      "year": 2011,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5202,
+      "decodedHeight": 3464,
+      "specSource": "Canon Camera Museum dslr806",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel T3i/IMG_0126.CR2"
+    },
+    {
+      "model": "EOS 5D Mark III",
+      "aliases": [],
+      "year": 2012,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 5760,
+      "decodedWidth": 5796,
+      "decodedHeight": 3870,
+      "specSource": "Canon Camera Museum dslr808 (sensor size: Canon spec, page has no table)",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 5D Mark III/5G4A9394.CR2"
+    },
+    {
+      "model": "EOS 60Da",
+      "aliases": [],
+      "year": 2012,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5202,
+      "decodedHeight": 3464,
+      "specSource": "Canon Camera Museum dslr810",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 60D/IMG_2014.CR2 (same sensor as EOS 60D)"
+    },
+    {
+      "model": "EOS 6D",
+      "aliases": [],
+      "year": 2012,
+      "sensorWidthMm": 35.8,
+      "effectiveWidth": 5472,
+      "decodedWidth": 5496,
+      "decodedHeight": 3670,
+      "specSource": "Canon Camera Museum dslr813",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 6D/EOS_6D_RAW.CR2"
+    },
+    {
+      "model": "EOS M",
+      "aliases": [],
+      "year": 2012,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5208,
+      "decodedHeight": 3476,
+      "specSource": "Canon Camera Museum dslr812",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS M/IMG_4624.CR2"
+    },
+    {
+      "model": "EOS Rebel T4i",
+      "aliases": [
+        "EOS Kiss X6i",
+        "EOS 650D"
+      ],
+      "year": 2012,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5208,
+      "decodedHeight": 3476,
+      "specSource": "Canon Camera Museum dslr811",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel T4i/IMG_6980.CR2"
+    },
+    {
+      "model": "EOS-1D C",
+      "aliases": [],
+      "year": 2012,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5218,
+      "decodedHeight": 3482,
+      "specSource": "Canon Camera Museum cesc824",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS-1D X/RAW_CANON_EOS_1DX.CR2 (same sensor as EOS-1D X)"
+    },
+    {
+      "model": "EOS-1D X",
+      "aliases": [],
+      "year": 2012,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5218,
+      "decodedHeight": 3482,
+      "specSource": "Canon Camera Museum dslr809 (sensor size: Canon spec, page has no table)",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS-1D X/RAW_CANON_EOS_1DX.CR2"
+    },
+    {
+      "model": "EOS 70D",
+      "aliases": [],
+      "year": 2013,
+      "sensorWidthMm": 22.5,
+      "effectiveWidth": 5472,
+      "decodedWidth": 5496,
+      "decodedHeight": 3670,
+      "specSource": "Canon Camera Museum dslr816",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 70D/RAW_CANON_EOS70D_01.CR2"
+    },
+    {
+      "model": "EOS M2",
+      "aliases": [],
+      "year": 2013,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5208,
+      "decodedHeight": 3476,
+      "specSource": "Canon Camera Museum dslr817",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS M2/m2_test_02.cr2"
+    },
+    {
+      "model": "EOS Rebel SL1",
+      "aliases": [
+        "EOS Kiss X7",
+        "EOS 100D"
+      ],
+      "year": 2013,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5208,
+      "decodedHeight": 3476,
+      "specSource": "Canon Camera Museum dslr815",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel SL1/IMG_0308.CR2"
+    },
+    {
+      "model": "EOS Rebel T5i",
+      "aliases": [
+        "EOS Kiss X7i",
+        "EOS 700D"
+      ],
+      "year": 2013,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5208,
+      "decodedHeight": 3476,
+      "specSource": "Canon Camera Museum dslr814",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel T5i/IMG_5139.CR2"
+    },
+    {
+      "model": "EOS 7D Mark II",
+      "aliases": [],
+      "year": 2014,
+      "sensorWidthMm": 22.4,
+      "effectiveWidth": 5472,
+      "decodedWidth": 5496,
+      "decodedHeight": 3670,
+      "specSource": "Canon Camera Museum dslr819",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 7D Mark II/capture000106.cr2"
+    },
+    {
+      "model": "EOS Rebel T5",
+      "aliases": [
+        "EOS Kiss X70",
+        "EOS 1200D",
+        "EOS Hi"
+      ],
+      "year": 2014,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5202,
+      "decodedHeight": 3464,
+      "specSource": "Canon Camera Museum dslr818",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel T5/IMG_0764.CR2"
+    },
+    {
+      "model": "EOS 5DS",
+      "aliases": [
+        "EOS 5DS R"
+      ],
+      "year": 2015,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 8688,
+      "decodedWidth": 8736,
+      "decodedHeight": 5856,
+      "specSource": "Canon Camera Museum dslr828",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 5DS R/_DSR2002.CR2"
+    },
+    {
+      "model": "EOS M10",
+      "aliases": [],
+      "year": 2015,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5208,
+      "decodedHeight": 3476,
+      "specSource": "Canon Camera Museum dslr835",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS M10/IMG_2207.CR2"
+    },
+    {
+      "model": "EOS M3",
+      "aliases": [],
+      "year": 2015,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4022,
+      "specSource": "Canon Camera Museum dslr820",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS M3/IMG_4635.CR2"
+    },
+    {
+      "model": "EOS Rebel T6i",
+      "aliases": [
+        "EOS Kiss X8i",
+        "EOS 750D"
+      ],
+      "year": 2015,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4022,
+      "specSource": "Canon Camera Museum dslr826",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel T6i/IMG_6217.CR2"
+    },
+    {
+      "model": "EOS Rebel T6s",
+      "aliases": [
+        "EOS 8000D",
+        "EOS 760D"
+      ],
+      "year": 2015,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4022,
+      "specSource": "Canon Camera Museum dslr827",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel T6s/IMG_3661.CR2"
+    },
+    {
+      "model": "EOS 5D Mark IV",
+      "aliases": [],
+      "year": 2016,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 6720,
+      "decodedWidth": 6744,
+      "decodedHeight": 4502,
+      "specSource": "Canon Camera Museum dslr849",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 5D Mark IV/B13A0729.CR2"
+    },
+    {
+      "model": "EOS 80D",
+      "aliases": [],
+      "year": 2016,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4020,
+      "specSource": "Canon Camera Museum dslr844",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 80D/IMG_0098.CR2"
+    },
+    {
+      "model": "EOS M5",
+      "aliases": [],
+      "year": 2016,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4020,
+      "specSource": "Canon Camera Museum dslr854",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS M5/IMG_6968.CR2"
+    },
+    {
+      "model": "EOS Rebel T6",
+      "aliases": [
+        "EOS Kiss X80",
+        "EOS 1300D"
+      ],
+      "year": 2016,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5202,
+      "decodedHeight": 3464,
+      "specSource": "Canon Camera Museum dslr848",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel T6/IMG_2422.CR2"
+    },
+    {
+      "model": "EOS-1D X Mark II",
+      "aliases": [],
+      "year": 2016,
+      "sensorWidthMm": 35.9,
+      "effectiveWidth": 5472,
+      "decodedWidth": 5496,
+      "decodedHeight": 3670,
+      "specSource": "Canon Camera Museum dslr846",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS-1D X Mark II/AZ1I2270.CR2"
+    },
+    {
+      "model": "EOS 6D Mark II",
+      "aliases": [],
+      "year": 2017,
+      "sensorWidthMm": 35.9,
+      "effectiveWidth": 6240,
+      "decodedWidth": 6264,
+      "decodedHeight": 4180,
+      "specSource": "Canon Camera Museum dslr866",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 6D Mark II/6DII-RAW.CR2"
+    },
+    {
+      "model": "EOS 77D",
+      "aliases": [
+        "EOS 9000D"
+      ],
+      "year": 2017,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4020,
+      "specSource": "Canon Camera Museum dslr852",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 77D/IMG_4049.CR2"
+    },
+    {
+      "model": "EOS M100",
+      "aliases": [],
+      "year": 2017,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4020,
+      "specSource": "Canon Camera Museum dslr867",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS M100/IMG_1200.CR2"
+    },
+    {
+      "model": "EOS M6",
+      "aliases": [],
+      "year": 2017,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4020,
+      "specSource": "Canon Camera Museum dslr855",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS M6/Canon_EOS-M6-IMG_0302.CR2"
+    },
+    {
+      "model": "EOS Rebel SL2",
+      "aliases": [
+        "EOS Kiss X9",
+        "EOS 200D"
+      ],
+      "year": 2017,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4020,
+      "specSource": "Canon Camera Museum dslr865",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel SL2/Canon_SL2_Len_24-105.CR2"
+    },
+    {
+      "model": "EOS Rebel T7i",
+      "aliases": [
+        "EOS Kiss X9i",
+        "EOS 800D"
+      ],
+      "year": 2017,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4020,
+      "specSource": "Canon Camera Museum dslr853",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel T7i/20190925-1501-0421.cr2"
+    },
+    {
+      "model": "EOS 4000D",
+      "aliases": [
+        "EOS 3000D",
+        "EOS Rebel T100"
+      ],
+      "year": 2018,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 5184,
+      "decodedWidth": 5202,
+      "decodedHeight": 3464,
+      "specSource": "canon.co.uk EOS 4000D specifications",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel T100/IMG_7229.CR2"
+    },
+    {
+      "model": "EOS M50",
+      "aliases": [
+        "EOS Kiss M"
+      ],
+      "year": 2018,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4020,
+      "specSource": "Canon Camera Museum dslr874",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS M50/Canon-EOS_M50_-CRAW_(1:1).CR3"
+    },
+    {
+      "model": "EOS R",
+      "aliases": [],
+      "year": 2018,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 6720,
+      "decodedWidth": 6742,
+      "decodedHeight": 4498,
+      "specSource": "Canon Camera Museum dslr877",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS R/Canon_EOS_R_RAW_ISO_100.CR3"
+    },
+    {
+      "model": "EOS Rebel T7",
+      "aliases": [
+        "EOS Kiss X90",
+        "EOS 2000D",
+        "EOS 1500D"
+      ],
+      "year": 2018,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6020,
+      "decodedHeight": 4015,
+      "specSource": "Canon Camera Museum dslr873",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel T7/IMG_0662.CR2"
+    },
+    {
+      "model": "EOS 90D",
+      "aliases": [],
+      "year": 2019,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6960,
+      "decodedWidth": 6984,
+      "decodedHeight": 4660,
+      "specSource": "Canon Camera Museum dslr887",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 90D/Canon-90D-cRAW-ISO-100.CR3"
+    },
+    {
+      "model": "EOS M200",
+      "aliases": [],
+      "year": 2019,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4020,
+      "specSource": "Canon Camera Museum dslr888",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/Canon EOS M200/_MG_2233.CR3"
+    },
+    {
+      "model": "EOS M6 Mark II",
+      "aliases": [],
+      "year": 2019,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6960,
+      "decodedWidth": 6984,
+      "decodedHeight": 4660,
+      "specSource": "Canon Camera Museum dslr886",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS M6 Mark II/IMG_RAW_1_1.CR3"
+    },
+    {
+      "model": "EOS REBEL SL3",
+      "aliases": [
+        "EOS Kiss X10",
+        "EOS 250D",
+        "200D II"
+      ],
+      "year": 2019,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4020,
+      "specSource": "Canon Camera Museum dslr883",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS Rebel SL3/Sedona2020_SL3__MG_1061.CR3"
+    },
+    {
+      "model": "EOS RP",
+      "aliases": [],
+      "year": 2019,
+      "sensorWidthMm": 35.9,
+      "effectiveWidth": 6240,
+      "decodedWidth": 6264,
+      "decodedHeight": 4180,
+      "specSource": "Canon Camera Museum dslr880",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS RP/Canon_EOS_RP_CRAW_ISO_100_nocrop_nodual.CR3"
+    },
+    {
+      "model": "EOS Ra",
+      "aliases": [],
+      "year": 2019,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 6720,
+      "decodedWidth": 6742,
+      "decodedHeight": 4498,
+      "specSource": "Canon Camera Museum dslr890",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS R/Canon_EOS_R_RAW_ISO_100.CR3 (same sensor as EOS R)"
+    },
+    {
+      "model": "EOS M50 Mark II",
+      "aliases": [
+        "EOS Kiss M2"
+      ],
+      "year": 2020,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4020,
+      "specSource": "Canon Camera Museum dslr897",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS M50 Mark II/IMG_0051.CR3"
+    },
+    {
+      "model": "EOS R5",
+      "aliases": [],
+      "year": 2020,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 8192,
+      "decodedWidth": 8352,
+      "decodedHeight": 5586,
+      "specSource": "Canon Camera Museum dslr894",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS R5/Canon_EOS_R5_RAW_ISO_100_nocrop_nodual.CR3"
+    },
+    {
+      "model": "EOS R6",
+      "aliases": [],
+      "year": 2020,
+      "sensorWidthMm": 35.9,
+      "effectiveWidth": 5472,
+      "decodedWidth": 5496,
+      "decodedHeight": 3670,
+      "specSource": "Canon Camera Museum dslr895",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS R6/Canon_EOS_R6_RAW_ISO_100_nocrop_nodual.CR3"
+    },
+    {
+      "model": "EOS Rebel T8i",
+      "aliases": [
+        "EOS Kiss X10i",
+        "EOS 850D"
+      ],
+      "year": 2020,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4020,
+      "specSource": "Canon Camera Museum dslr892",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS 850D/IMG_1837.CR3"
+    },
+    {
+      "model": "EOS-1D X Mark III",
+      "aliases": [],
+      "year": 2020,
+      "sensorWidthMm": 35.9,
+      "effectiveWidth": 5472,
+      "decodedWidth": 5496,
+      "decodedHeight": 3670,
+      "specSource": "Canon Camera Museum dslr891",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS-1D X Mark III/Canon_EOS-1D_X_Mark_III_RAW_ISO_100_nocrop_nodual.CR3"
+    },
+    {
+      "model": "EOS R3",
+      "aliases": [],
+      "year": 2021,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6192,
+      "decodedHeight": 4152,
+      "specSource": "Canon Camera Museum dslr899",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS R3/_C3A1200.CR3"
+    },
+    {
+      "model": "EOS R10",
+      "aliases": [],
+      "year": 2022,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6192,
+      "decodedHeight": 4060,
+      "specSource": "Canon Camera Museum dslr902",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS R10/IMG_4276.CR3"
+    },
+    {
+      "model": "EOS R5 C",
+      "aliases": [],
+      "year": 2022,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 8192,
+      "decodedWidth": 8352,
+      "decodedHeight": 5586,
+      "specSource": "Canon Camera Museum cesc900",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS R5/Canon_EOS_R5_RAW_ISO_100_nocrop_nodual.CR3 (same sensor as EOS R5)"
+    },
+    {
+      "model": "EOS R6 Mark II",
+      "aliases": [],
+      "year": 2022,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6188,
+      "decodedHeight": 4120,
+      "specSource": "Canon Camera Museum dslr905",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS R6 Mark II/canon-r6m2-img_0346-raw-normal-full.cr3"
+    },
+    {
+      "model": "EOS R7",
+      "aliases": [],
+      "year": 2022,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6960,
+      "decodedWidth": 6984,
+      "decodedHeight": 4660,
+      "specSource": "Canon Camera Museum dslr901",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS R7/443A0157.CR3"
+    },
+    {
+      "model": "EOS R100",
+      "aliases": [],
+      "year": 2023,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6024,
+      "decodedHeight": 4020,
+      "specSource": "Canon Camera Museum dslr908",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/Canon EOS R100/_MG_2195[1].CR3"
+    },
+    {
+      "model": "EOS R50",
+      "aliases": [],
+      "year": 2023,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6192,
+      "decodedHeight": 4060,
+      "specSource": "Canon Camera Museum dslr906",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS R50/Canon_R50_ISO100_RAW_mechanicShutter.CR3"
+    },
+    {
+      "model": "EOS R8",
+      "aliases": [],
+      "year": 2023,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6188,
+      "decodedHeight": 4120,
+      "specSource": "Canon Camera Museum dslr907",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/EOS R8/RAW_FULL_FRAME.CR3"
+    },
+    {
+      "model": "EOS R1",
+      "aliases": [],
+      "year": 2024,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 6000,
+      "decodedWidth": 0,
+      "decodedHeight": 0,
+      "specSource": "Canon Camera Museum dslr913",
+      "sizeSource": "no sample; taken from the first frame"
+    },
+    {
+      "model": "EOS R5 Mark II",
+      "aliases": [],
+      "year": 2024,
+      "sensorWidthMm": 36.0,
+      "effectiveWidth": 8192,
+      "decodedWidth": 8480,
+      "decodedHeight": 5650,
+      "specSource": "Canon Camera Museum dslr910",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/Canon EOS R5m2/RAW.CR3"
+    },
+    {
+      "model": "EOS R50 V",
+      "aliases": [],
+      "year": 2025,
+      "sensorWidthMm": 22.3,
+      "effectiveWidth": 6000,
+      "decodedWidth": 6192,
+      "decodedHeight": 4060,
+      "specSource": "Canon Camera Museum dslr915",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/Canon EOS R50 V/IMG_0034.CR3"
+    },
+    {
+      "model": "EOS R6 Mark III",
+      "aliases": [],
+      "year": 2025,
+      "sensorWidthMm": 35.9,
+      "effectiveWidth": 6960,
+      "decodedWidth": 7144,
+      "decodedHeight": 4760,
+      "specSource": "canon.co.uk EOS R6 Mark III specifications",
+      "sizeSource": "NINA 3.2 decoder on raw.pixls.us Canon/Canon EOS R6 Mark III/IMG_4241.CR3"
+    }
+  ]
+}
